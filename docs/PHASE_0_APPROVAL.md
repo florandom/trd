@@ -1,6 +1,6 @@
 # Architecture Approval Gate
 
-Phase 0 only — 2 October 2026. **Awaiting approval. Phase 1 has not started.**
+Phase 0 record — 2 October 2026. **Approved by the user: “go with phase 1”.** The proposal below records the approved scope. Implementation evidence is in [Phase 1 validation](PHASE_1_VALIDATION.md).
 
 ## Final stack
 
@@ -78,4 +78,4 @@ Local default Python is3.9 and Docker was not found in PATH/standard app locatio
 6. Add CI: backend unit/config checks, frontend typecheck/lint/build, fresh PostgreSQL migration smoke and Windows backend/build compatibility.
 7. Verify fresh-clone boot from documented commands, record failures/limits, update docs and commit logical work. Stop on a true blocker; otherwise continue the approved phase plan.
 
-Approval needed now is only to begin Phase 1. No approval for live trading, broker execution, Autologon or external publishing is implied.
+The approval authorizes Phase 1. No approval for live trading, broker execution, Autologon or external publishing is implied.

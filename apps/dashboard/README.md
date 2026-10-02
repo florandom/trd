@@ -1,0 +1,17 @@
+# Dashboard foundation
+
+Phase 1 exposes read-only infrastructure readiness. Paper mode and disabled automation are fixed in the public contract. Authentication, settings, trading data and administrative controls belong to later phases; disabled navigation labels make that scope explicit.
+
+Astryx 0.6.4's `shell-side-nav` template was scaffolded with the real CLI and adapted after reading its generated `AGENTS.md`, layout guidance and component contracts. The AppShell/SideNav/Layout frame, content padding 6 and section gap 5 remain; the mixed operational table uses a 960px content budget and a 260px resizable sidebar. Below the theme's `md` breakpoint, AppShell swaps navigation to its mobile drawer. The prebuilt neutral theme runs in dark mode. All interior overrides use StyleX and semantic tokens.
+
+Next 16 uses an explicit Webpack build/dev path with the verified community SWC StyleX compiler; its default plugin does not extract CSS through default Turbopack. The Webpack carrier is imported in the root layout. No remote fonts are fetched by Next during builds.
+
+TypeScript 6.0.3 is pinned because the installed typescript-eslint version rejects the TypeScript 7 API. Strict typechecking, lint, eight readiness/proxy tests and a production build passed. The built standalone server was also opened in a browser: dark styles, unavailable status, Refresh, and the 390px navigation drawer/anchor behavior were checked. These checks do not establish later trading-service or authentication acceptance.
+
+The monorepo standalone entrypoint is `.next/standalone/apps/dashboard/server.js`. Production packaging must place `.next/static` at `.next/standalone/apps/dashboard/.next/static` (and `public` alongside the server if that directory is added later). Use the packaged server for deployed operation; `next start` prints a standalone-mode warning.
+
+`API_INTERNAL_URL` is a server-only origin (default `http://127.0.0.1:8000`, Compose uses `http://api:8000`). A fixed same-origin `/api/status` route requests `/health/ready`, validates and whitelists the public DTO, and returns a generic error on invalid replies/timeouts. It follows no redirects, sends no user credentials, caches nothing and never returns the configured origin or upstream diagnostics. No `NEXT_PUBLIC_*` secret is used. Ready means API database/migration readiness only; it does not imply worker, Telegram, AI or MT5 availability.
+
+The browser refreshes every 10 seconds, treats observations older than 30 seconds (or too far in the future) as stale, and clearly marks failed requests as unavailable even when an earlier observation exists. UTC observation time remains visible. Tests cover boundary validation, stale/future observations, status-code consistency, error redaction and redirect/cache behavior.
+
+Use root workspace scripts or `pnpm --filter @trd/dashboard <dev|typecheck|lint|test|build|start>`. Containers can override the host binding with their command. Before externally exposing this foundation, implement the later authentication/security phases.

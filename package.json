@@ -1,0 +1,26 @@
+{
+  "name": "trd-platform",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=24.20.0 <25",
+    "pnpm": "11.25.0"
+  },
+  "scripts": {
+    "dev": "node infra/scripts/python-task.mjs dev",
+    "setup": "node infra/scripts/python-task.mjs init-env",
+    "db:provision": "node infra/scripts/python-task.mjs provision-db",
+    "db:migrate": "node infra/scripts/python-task.mjs migrate",
+    "db:bootstrap": "node infra/scripts/python-task.mjs bootstrap",
+    "check": "node infra/scripts/python-task.mjs check",
+    "typecheck": "pnpm --filter @trd/dashboard typecheck",
+    "lint": "pnpm --filter @trd/dashboard lint",
+    "build": "pnpm --filter @trd/dashboard build",
+    "test": "node infra/scripts/python-task.mjs test",
+    "api:generate": "node infra/scripts/python-task.mjs generate-api"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0"
+  }
+}

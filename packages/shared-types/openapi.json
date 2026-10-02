@@ -1,0 +1,138 @@
+{
+  "components": {
+    "schemas": {
+      "HealthLiveness": {
+        "additionalProperties": false,
+        "properties": {
+          "phase": {
+            "const": 1,
+            "default": 1,
+            "title": "Phase",
+            "type": "integer"
+          },
+          "service": {
+            "enum": [
+              "api",
+              "risk",
+              "simulator"
+            ],
+            "title": "Service",
+            "type": "string"
+          },
+          "status": {
+            "const": "alive",
+            "default": "alive",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "service"
+        ],
+        "title": "HealthLiveness",
+        "type": "object"
+      },
+      "HealthReadiness": {
+        "additionalProperties": false,
+        "properties": {
+          "automation_enabled": {
+            "const": false,
+            "default": false,
+            "title": "Automation Enabled",
+            "type": "boolean"
+          },
+          "checked_at": {
+            "format": "date-time",
+            "title": "Checked At",
+            "type": "string"
+          },
+          "mode": {
+            "const": "paper",
+            "default": "paper",
+            "title": "Mode",
+            "type": "string"
+          },
+          "phase": {
+            "const": 1,
+            "default": 1,
+            "title": "Phase",
+            "type": "integer"
+          },
+          "service": {
+            "const": "api",
+            "default": "api",
+            "title": "Service",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "not_ready"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "checked_at"
+        ],
+        "title": "HealthReadiness",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Trading orchestration foundation",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/health/live": {
+      "get": {
+        "operationId": "health_live",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthLiveness"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Live"
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "health_ready",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthReadiness"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthReadiness"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Ready"
+      }
+    }
+  }
+}

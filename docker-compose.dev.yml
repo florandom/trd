@@ -1,0 +1,17 @@
+# Host development: only PostgreSQL/optional Redis run in containers.
+# pnpm dev starts role-scoped Python processes and the Next.js dev server.
+services:
+  initialize:
+    profiles: [containers]
+  api:
+    profiles: [containers]
+  bridge:
+    profiles: [containers]
+  worker:
+    profiles: [containers]
+  telegram:
+    profiles: [containers]
+  maintenance:
+    profiles: [containers]
+  dashboard:
+    profiles: [containers]

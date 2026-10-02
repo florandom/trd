@@ -1,0 +1,132 @@
+name: Foundation checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: foundation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Python, dashboard and API contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up uv and Python selection
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: '0.12.22'
+          python-version: '3.13.16'
+      - name: Install Python and locked dependencies
+        run: |
+          uv python install 3.13.16
+          uv sync --frozen
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.20.0'
+          package-manager-cache: false
+      - name: Install pnpm and locked workspace dependencies
+        run: |
+          npm install --global pnpm@11.25.0
+          pnpm install --frozen-lockfile
+      - name: Check Python with Ruff
+        run: uv run --frozen ruff check backend apps/api apps/worker apps/telegram apps/simulator migrations infra/scripts tests
+      - name: Run Python unit tests
+        run: uv run --frozen pytest -m 'not integration'
+      - name: Check dashboard lint and types
+        run: |
+          pnpm --filter @trd/dashboard lint
+          pnpm --filter @trd/dashboard typecheck
+      - name: Run dashboard tests
+        run: pnpm --filter @trd/dashboard test
+      - name: Build dashboard production artifact
+        run: pnpm --filter @trd/dashboard build
+      - name: Regenerate API schema and types with no drift
+        run: |
+          pnpm api:generate
+          git diff --exit-code -- packages/shared-types/openapi.json packages/shared-types/src/generated.ts
+
+  persistence:
+    name: PostgreSQL 17 migrations and role permissions
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17.11-bookworm@sha256:639ab7ceb90e13123085b741fb31ef493fba25463002f6da665352e7b534b652
+        env:
+          POSTGRES_USER: ci_admin
+          POSTGRES_PASSWORD: ci-test-admin-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci_admin -d postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    # Disposable local CI credentials only; never production secrets or remote database URLs.
+    # The fixture substitutes a unique trd_test_<uuid> DB for each integration test.
+    env:
+      TEST_ADMIN_DATABASE_URL: postgresql+psycopg://ci_admin:ci-test-admin-only@127.0.0.1:5432/postgres
+      MIGRATION_DATABASE_URL: postgresql+psycopg://trd_migrator:ci-test-migrator-only@127.0.0.1:5432/ci_bootstrap
+      API_DATABASE_URL: postgresql+psycopg://trd_api:ci-test-api-only@127.0.0.1:5432/ci_bootstrap
+      COLLECTOR_DATABASE_URL: postgresql+psycopg://trd_collector:ci-test-collector-only@127.0.0.1:5432/ci_bootstrap
+      AI_DATABASE_URL: postgresql+psycopg://trd_ai:ci-test-ai-only@127.0.0.1:5432/ci_bootstrap
+      RISK_DATABASE_URL: postgresql+psycopg://trd_risk:ci-test-risk-only@127.0.0.1:5432/ci_bootstrap
+      MAINTENANCE_DATABASE_URL: postgresql+psycopg://trd_maintenance:ci-test-maintenance-only@127.0.0.1:5432/ci_bootstrap
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up uv and Python selection
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: '0.12.22'
+          python-version: '3.13.16'
+      - name: Install Python and locked dependencies
+        run: |
+          uv python install 3.13.16
+          uv sync --frozen
+      - name: Preprovision restricted integration roles
+        run: |
+          uv run --frozen python - <<'PY'
+          import os
+          from infra.scripts.environment import ROLE_URLS
+          from infra.scripts.provision_database import provision
+
+          fields = ["MIGRATION_DATABASE_URL", *(field for field, _ in ROLE_URLS.values())]
+          values = {field: os.environ[field] for field in fields}
+          values["POSTGRES_DB"] = "ci_bootstrap"
+          values["DATABASE_ADMIN_URL"] = os.environ["TEST_ADMIN_DATABASE_URL"]
+          # Only trd_migrator joins trd_owner. Runtime roles cannot create DBs/roles.
+          provision(values)
+          PY
+      - name: Run real PostgreSQL integration tests
+        run: uv run --frozen pytest -m integration
+
+  windows-preview:
+    name: Windows native foundation previews
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check PowerShell parsing, loopback validation and safe templates
+        shell: pwsh
+        run: ./infra/windows/Test-FoundationScripts.ps1

@@ -1,6 +1,6 @@
 # Environment and configuration matrix
 
-Status: Phase 0 proposal, 2 October 2026. No `.env`, real credentials or production configuration has been created. The `.env.example` and validators are Phase 1 work. This matrix specifies their contract, rather than implying they already exist.
+Status: Phase 1 foundation, 2 October 2026. `.env.example`, secure local generation and service-scoped validation are implemented. The full matrix below remains the phased target contract: reserved integration variables do not imply implemented adapters. No production configuration or broker credential has been created.
 
 ## Observed local environment
 
@@ -17,7 +17,34 @@ Status: Phase 0 proposal, 2 October 2026. No `.env`, real credentials or product
 | Network | Sandbox registry DNS failed; approved external package metadata/install succeeded | Research succeeded; do not attribute failures to package incompatibility |
 | Windows/MT5 | No target host or broker runtime accessible | Native deployment, EA compile, demo, certificate and reboot tests not run |
 
-The disposable Astryx/Next compatibility spike is outside the repository. See [Astryx evidence](research/ASTRYX.md) and [Phase 0 validation](PHASE_0_VALIDATION.md). No application runtime was installed into this workspace.
+The observations above record the initial Phase 0 inspection. Phase 1 installed uv0.12.22 with Python3.13.16 and an isolated Colima Docker profile; Node24.20.0/pnpm11.25.0 were retained. The actual locked graph and container boot are covered in [Phase 1 validation](PHASE_1_VALIDATION.md).
+
+## Implemented Phase 1 contract
+
+`pnpm setup` replaces declared `__GENERATE__` placeholders using OS cryptographic randomness. Each role receives a separate password; keys are independent 32-byte hex values. It creates `.env` atomically with POSIX mode0600, preserves existing values and refuses non-development/non-paper or automation-enabled templates. On Windows, restrict the file with the deployment ACL procedure; POSIX permission bits alone do not establish Windows ACL protection. Generated secrets are never printed by setup.
+
+The root `.env` belongs to the operator. Runtime settings never auto-load it. Host tasks project an allowlist for each process; Compose interpolates only that service's fields; native Windows templates use an explicit `.env.<service>` via `ENV_FILE`. No browser secret is exported. Configuration errors are reported without raw input values.
+
+| Process | Database login | Credential boundary |
+| --- | --- | --- |
+| One-shot provisioner | Local `trd_bootstrap` superuser | Admin connection only, absent from services |
+| Migration/bootstrap | `trd_migrator` with `trd_owner` membership | Schema/setup authority, absent from services |
+| API | `trd_api` | Safe SELECT projections and own heartbeat only |
+| Collector | `trd_collector` | Own heartbeat; reserved Telegram fields only |
+| AI placeholder | `trd_ai` | Own heartbeat; reserved provider fields only |
+| Isolated bridge | `trd_risk` | Own heartbeat; reserved bridge keys/hard bounds only |
+| Maintenance | `trd_maintenance` | Own heartbeat; reserved alert/retention fields only |
+| Dashboard server | None | `API_INTERNAL_URL` only; safe same-origin proxy |
+
+Provisioning requires PostgreSQL17. It creates missing roles/database, rejects unsafe existing roles or unexpected memberships, never resets role passwords, revokes public schema CREATE, and grants schema DDL only to a non-login owner. The migrator assumes that owner explicitly. Runtime roles cannot read raw password hashes, settings history or audit details, and cannot write table rows. A fixed-search-path heartbeat function derives service identity from the database login. These grants are checked against a real database.
+
+`APP_ENV` is validated as development/test/production, but Phase 1 permits only `TRADING_MODE=paper` with automation/live, pending orders and partial close false. Telegram enablement and non-mock AI mode are rejected. Production requires secure cookies, strong role passwords, non-debug logging and absolute storage paths; external-looking production origins are rejected until authentication exists. These guards do not certify a production deployment.
+
+`DATABASE_ADMIN_URL`, `API_DATABASE_URL`, `COLLECTOR_DATABASE_URL`, `AI_DATABASE_URL`, `RISK_DATABASE_URL` and `MAINTENANCE_DATABASE_URL` are operator fields. Each runtime receives its role URL under `DATABASE_URL`. `POSTGRES_HOST/PORT` are used when generating local URLs; `API_PORT`, `BRIDGE_PORT`, `DASHBOARD_PORT`, `REDIS_PORT` select loopback host ports. Compose rewrites database host/port to its fixed internal PostgreSQL address. Local `API_INTERNAL_URL` must match the API port; the container dashboard uses `http://api:8000`.
+
+The six seeded settings use immutable version rows plus current-version references. Repeat bootstrap preserves both passwords and settings; orphaned history fails rather than being overwritten. The admin email default is `admin@localhost.invalid` and the password is unique, generated and retained privately for later login work. No login route exists in this phase. Removing bootstrap credentials is appropriate after provisioning a deployed environment; repeated local initialization currently requires them to remain available.
+
+Logs use structured JSON and rotating files in each service's separate data/log location. Health responses contain only status, service, phase, paper mode, disabled automation and UTC observation time. Default heartbeat interval is10 seconds; STARTING/HEALTHY/DEGRADED/STOPPED reflect process and database state. Redis is not a readiness dependency. Retention variables are reserved policy fields; the scheduled retention engine is not implemented yet.
 
 ## Authority and units
 
@@ -35,7 +62,7 @@ The numeric defaults below are conservative test/bootstrap bounds, not a recomme
 | --- | --- | --- | --- |
 | APP_ENV | `development`; enum development/test/production | No | All; deploy config |
 | APP_URL | Local origin in development; required HTTPS production origin | No | API/edge; fixed trusted origin |
-| LOG_LEVEL | `INFO`; production DEBUG needs reviewed redaction | No | All |
+| LOG_LEVEL | `INFO`; production DEBUG rejected in Phase 1 | No | All |
 | TIMEZONE | `Europe/Rome` display; internal UTC | No | API/dashboard |
 | ENVIRONMENT_ID | Unique paper/demo/live deployment identity; required | No | API/worker/bridge/EA |
 | DATABASE_URL | Required per-process least-privilege DSN; no hardcoded password | Yes | Each Python process gets its own role-scoped value |
@@ -86,7 +113,7 @@ The numeric defaults below are conservative test/bootstrap bounds, not a recomme
 | MT5_HEARTBEAT_MAX_AGE_SECONDS | `10`; proposed pending runtime measurements | No | Risk/bridge health |
 | MT5_MAX_CLOCK_SKEW_SECONDS | `3`; sync and replay checks | No | Bridge/EA; reject beyond configured bound |
 | MANAGED_MAGIC_NUMBER | Per-environment configured integer | No | Risk/EA; ownership hint, not sufficient proof |
-| TRADING_MODE | `paper`; enum paper/demo/live | No | Deployment-only; visible browser status |
+| TRADING_MODE | `paper`; Phase 1 rejects demo/live; target later paper/demo/live | No | Deployment-only; visible browser status |
 | HARD_MAX_RISK_PER_TRADE | `0.01` fraction of equity | No | Risk executor; secure maximum |
 | HARD_MAX_DAILY_LOSS | `0.03` cash-flow-adjusted equity fraction | No | Risk executor |
 | HARD_MAX_TOTAL_OPEN_RISK | `0.03`; includes reservations/all-account exposure | No | Risk executor |
