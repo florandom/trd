@@ -1,0 +1,17 @@
+# Phase 0 housekeeping; no application scaffold.
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.session
+*.session-journal
+*.pem
+*.key
+*.pfx
+*.p12
+logs/
+data/
+node_modules/
+.venv/
+__pycache__/
+.DS_Store
