@@ -40,6 +40,7 @@ Stopping preserves database volumes. Run `docker compose start` to resume. Avoid
 Start only PostgreSQL and optional Redis in containers, then run the cross-platform development supervisor:
 
 ```sh
+docker compose stop
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres redis
 pnpm dev
 ```

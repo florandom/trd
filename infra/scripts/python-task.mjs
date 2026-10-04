@@ -10,7 +10,7 @@ const child = spawn(uv, ['run', '--frozen', 'python', 'infra/scripts/task.py', .
   cwd: root, stdio: 'inherit', shell: false,
 });
 child.on('error', () => {
-  console.error('Install uv 0.12.22, then retry. See docs/DEPLOYMENT_MAC.md.');
+  console.error('Install uv 0.12.22, then retry. See README.md (Local boot).');
   process.exitCode = 1;
 });
 for (const signal of ['SIGINT', 'SIGTERM']) {

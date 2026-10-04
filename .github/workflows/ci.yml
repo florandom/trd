@@ -119,14 +119,60 @@ jobs:
         run: uv run --frozen pytest -m integration
 
   windows-preview:
-    name: Windows native foundation previews
+    name: Windows backend, dashboard and native previews
     runs-on: windows-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Set up uv and Python selection
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: '0.12.22'
+          python-version: '3.13.16'
+      - name: Install Python
+        shell: pwsh
+        run: uv python install 3.13.16
+      - name: Install locked backend dependencies
+        shell: pwsh
+        run: uv sync --frozen
+      - name: Smoke-import backend and native dependencies without starting services
+        shell: pwsh
+        run: |
+          @'
+          import psycopg
+          from argon2 import PasswordHasher
+          from backend.api.factory import create_app, create_bridge_app
+          from backend.domain.config import ApiSettings, BridgeSettings
+          from backend.infrastructure.database import Database
+
+          assert psycopg.pq.version() > 0
+          assert all(callable(value) for value in (
+              PasswordHasher, create_app, create_bridge_app, ApiSettings, BridgeSettings, Database,
+          ))
+          print("Backend imports and native dependency loading passed; no services started.")
+          '@ | uv run --frozen python -
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.20.0'
+          package-manager-cache: false
+      - name: Install pnpm
+        shell: pwsh
+        run: npm install --global pnpm@11.25.0
+      - name: Install locked workspace dependencies
+        shell: pwsh
+        run: pnpm install --frozen-lockfile
+      - name: Check dashboard types on Windows
+        shell: pwsh
+        run: pnpm --filter @trd/dashboard typecheck
+      - name: Build dashboard production artifact on Windows
+        shell: pwsh
+        run: pnpm --filter @trd/dashboard build
       - name: Check PowerShell parsing, loopback validation and safe templates
         shell: pwsh
         run: ./infra/windows/Test-FoundationScripts.ps1

@@ -6,7 +6,7 @@
     "dev": "next dev --webpack --hostname 127.0.0.1",
     "build": "next build --webpack",
     "start": "next start --hostname 127.0.0.1",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen --webpack && tsc --noEmit",
     "lint": "eslint .",
     "test": "node --import tsx --test tests/*.test.ts",
     "astryx": "node node_modules/@astryxdesign/cli/clients/cli/bin/astryx.mjs"

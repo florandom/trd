@@ -370,6 +370,28 @@ def test_supervisor_termination_callback_stops_all_child_groups_and_restores_han
     assert_supervisor_cleanup(state)
 
 
+def test_repeated_termination_during_cleanup_does_not_orphan_children_or_handlers(
+    development_supervisor, monkeypatch
+):
+    state = development_supervisor
+    state.trigger_signal = task.signal.SIGTERM
+    original_stop = task.stop_process
+    repeated_signals = []
+
+    def stop_with_repeated_termination(child):
+        original_stop(child)
+        if not repeated_signals:
+            repeated_signals.append(state.trigger_signal)
+            state.active_handlers[state.trigger_signal](state.trigger_signal, None)
+
+    monkeypatch.setattr(task, "stop_process", stop_with_repeated_termination)
+    with pytest.raises(KeyboardInterrupt):
+        task.dev(state.values)
+    assert repeated_signals == [task.signal.SIGTERM]
+    assert len(state.children) == 6
+    assert_supervisor_cleanup(state)
+
+
 @pytest.mark.parametrize("launch_failure", range(6))
 def test_supervisor_startup_failure_stops_every_started_child_and_restores_handlers(
     development_supervisor, launch_failure

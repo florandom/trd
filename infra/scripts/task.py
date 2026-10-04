@@ -152,9 +152,14 @@ def dev(values: dict[str, str]) -> None:
         raise ValueError("The development supervisor is not a production service manager.")
     children: list[subprocess.Popen] = []
     previous_handlers = {}
+    stop_requested = False
 
     def request_stop(_number: int, _frame: object) -> None:
         # A supervisor receiving SIGTERM must still tear down every child group.
+        nonlocal stop_requested
+        if stop_requested:
+            return
+        stop_requested = True
         raise KeyboardInterrupt
 
     for name in ("SIGTERM", "SIGBREAK"):

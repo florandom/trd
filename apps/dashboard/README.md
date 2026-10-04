@@ -6,7 +6,7 @@ Astryx 0.6.4's `shell-side-nav` template was scaffolded with the real CLI and ad
 
 Next 16 uses an explicit Webpack build/dev path with the verified community SWC StyleX compiler; its default plugin does not extract CSS through default Turbopack. The Webpack carrier is imported in the root layout. No remote fonts are fetched by Next during builds.
 
-TypeScript 6.0.3 is pinned because the installed typescript-eslint version rejects the TypeScript 7 API. Strict typechecking, lint, eight readiness/proxy tests and a production build passed. The built standalone server was also opened in a browser: dark styles, unavailable status, Refresh, and the 390px navigation drawer/anchor behavior were checked. These checks do not establish later trading-service or authentication acceptance.
+TypeScript 6.0.3 is pinned because the installed typescript-eslint version rejects the TypeScript 7 API. The typecheck command first generates Next's route types with `next typegen --webpack`, so it also works on a clean checkout before a build. Strict typechecking, lint, eight readiness/proxy tests and a production build passed. The built standalone server was also opened in a browser: dark styles, unavailable status, Refresh, and the 390px navigation drawer/anchor behavior were checked. These checks do not establish later trading-service or authentication acceptance.
 
 The monorepo standalone entrypoint is `.next/standalone/apps/dashboard/server.js`. Production packaging must place `.next/static` at `.next/standalone/apps/dashboard/.next/static` (and `public` alongside the server if that directory is added later). Use the packaged server for deployed operation; `next start` prints a standalone-mode warning.
 
