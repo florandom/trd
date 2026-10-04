@@ -2,6 +2,12 @@
 
 Project-specific guidance for AI coding agents.
 
+All customer-facing dashboard copy must be in Italian, including navigation,
+statuses, errors, metadata and accessible labels. Use `it-IT` and display dates
+in the `Europe/Rome` time zone; API timestamps remain UTC. Extend the Astryx
+Italian overrides in `src/lib/locale.ts` when adding components with default
+English strings. Keep protocol identifiers and API contracts unchanged.
+
 <!-- ASTRYX:START -->
 Astryx v0.6.4 · 90+ components
 CLI: run every command as `npx astryx <cmd>` (shown below as `astryx ...`).

@@ -25,6 +25,7 @@ import {
   ShieldCheckIcon, SignalIcon, Squares2X2Icon,
 } from '@heroicons/react/24/outline';
 import {useReadiness} from '@/hooks/use-readiness';
+import {formatCheckedAt} from '@/lib/locale';
 import type {ConnectionState} from '@/lib/readiness';
 
 const styles = stylex.create({
@@ -37,11 +38,11 @@ const styles = stylex.create({
 });
 
 const CONNECTION: Record<ConnectionState, {label: string; variant: StatusDotVariant; detail: string}> = {
-  loading: {label: 'Checking connection', variant: 'neutral', detail: 'Waiting for the first readiness check.'},
-  ready: {label: 'Foundation ready', variant: 'success', detail: 'The API can reach its database and the schema is current.'},
-  not_ready: {label: 'Foundation not ready', variant: 'warning', detail: 'The API reports that database or migration checks need attention.'},
-  stale: {label: 'Status is stale', variant: 'warning', detail: 'The last check is too old or its clock is out of sync. Current readiness is unknown.'},
-  offline: {label: 'Status unavailable', variant: 'error', detail: 'The dashboard cannot confirm API readiness. No connection is assumed.'},
+  loading: {label: 'Verifica della connessione', variant: 'neutral', detail: 'In attesa del primo aggiornamento sullo stato dei servizi.'},
+  ready: {label: 'Connessione verificata', variant: 'success', detail: 'I servizi di base comunicano correttamente con il database, che è aggiornato.'},
+  not_ready: {label: 'Connessione da verificare', variant: 'warning', detail: 'Il database non è disponibile oppure richiede un aggiornamento.'},
+  stale: {label: 'Stato non aggiornato', variant: 'warning', detail: 'L’ultimo controllo è troppo vecchio oppure l’orario non è sincronizzato. Lo stato attuale non è confermato.'},
+  offline: {label: 'Stato non disponibile', variant: 'error', detail: 'Non è possibile verificare la connessione ai servizi di base.'},
 };
 
 interface ServiceRow extends Record<string, unknown> {
@@ -52,25 +53,25 @@ interface ServiceRow extends Record<string, unknown> {
 }
 
 const serviceColumns: TableColumn<ServiceRow>[] = [
-  {key: 'name', header: 'Service', width: proportional(2), renderCell: row => <Text weight="semibold">{row.name}</Text>},
-  {key: 'state', header: 'State', width: proportional(2), renderCell: row => (
+  {key: 'name', header: 'Servizio', width: proportional(2), renderCell: row => <Text weight="semibold">{row.name}</Text>},
+  {key: 'state', header: 'Stato', width: proportional(2), renderCell: row => (
     <HStack gap={2} vAlign="center">
       <StatusDot variant={row.variant} label={row.state} />
       <Text>{row.state}</Text>
     </HStack>
   )},
-  {key: 'detail', header: 'What this means', width: proportional(4), renderCell: row => <Text color="secondary">{row.detail}</Text>},
+  {key: 'detail', header: 'Dettagli', width: proportional(4), renderCell: row => <Text color="secondary">{row.detail}</Text>},
 ];
 
 export default function OperationalShell() {
   const {data, state, isRefreshing, refresh} = useReadiness();
   const connection = CONNECTION[state];
   const services: ServiceRow[] = [
-    {name: 'API / database', state: connection.label, detail: 'Database reachability and migration revision only.', variant: connection.variant},
-    {name: 'Telegram', state: 'Not connected', detail: 'Signal ingestion will be added in a later phase.', variant: 'neutral'},
-    {name: 'AI agents', state: 'Not configured', detail: 'No provider requests or decisions are running.', variant: 'neutral'},
-    {name: 'Risk / execution', state: 'Not active', detail: 'Deterministic risk controls and the execution bridge are not implemented yet.', variant: 'neutral'},
-    {name: 'MT5 / EA', state: 'Not connected', detail: 'No terminal or broker account is connected.', variant: 'neutral'},
+    {name: 'Servizi di base', state: connection.label, detail: 'Verifica della connessione al database e del suo aggiornamento.', variant: connection.variant},
+    {name: 'Telegram', state: 'Non collegato', detail: 'La ricezione dei segnali sarà disponibile in seguito.', variant: 'neutral'},
+    {name: 'Agenti IA', state: 'Non configurati', detail: 'Nessuna analisi o decisione automatica in corso.', variant: 'neutral'},
+    {name: 'Rischio e ordini', state: 'Non attivi', detail: 'I controlli del rischio e l’invio degli ordini saranno disponibili in seguito.', variant: 'neutral'},
+    {name: 'MetaTrader 5', state: 'Non collegato', detail: 'Nessun terminale o conto di trading collegato.', variant: 'neutral'},
   ];
 
   // The original template frame is retained. Mixed operational rows use a 960px
@@ -84,29 +85,29 @@ export default function OperationalShell() {
         <SideNav
           collapsible
           resizable={{defaultWidth: 260, minWidth: 220, maxWidth: 420}}
-          header={<SideNavHeading heading="TRD" superheading="CONTROL CENTER" headingHref="/" />}
+          header={<SideNavHeading heading="TRD" superheading="CENTRO DI CONTROLLO" headingHref="/" />}
           footer={
             <Section variant="transparent" padding={4}>
               <VStack gap={2}>
                 <HStack gap={2} vAlign="center">
-                  <StatusDot variant="neutral" label="Automation disabled" />
-                  <Text type="supporting">Automation disabled</Text>
+                  <StatusDot variant="neutral" label="Automazione disattivata" />
+                  <Text type="supporting">Automazione disattivata</Text>
                 </HStack>
-                <Text type="supporting" color="secondary">Foundation · Phase 1</Text>
+                <Text type="supporting" color="secondary">Ambiente locale</Text>
               </VStack>
             </Section>
           }>
-          <SideNavSection title="Workspace">
-            <SideNavItem label="Overview" icon={Squares2X2Icon} href="/" as={Link} isSelected />
-            <SideNavItem label="System status" icon={SignalIcon} href="#service-health" />
+          <SideNavSection title="Area di lavoro">
+            <SideNavItem label="Panoramica" icon={Squares2X2Icon} href="/" as={Link} isSelected />
+            <SideNavItem label="Stato dei servizi" icon={SignalIcon} href="#service-health" />
           </SideNavSection>
           <Divider />
-          <SideNavSection title="Coming in later phases">
-            <SideNavItem label="Positions" icon={ChartBarIcon} isDisabled />
-            <SideNavItem label="Signals" icon={SignalIcon} isDisabled />
-            <SideNavItem label="Agents" icon={CommandLineIcon} isDisabled />
-            <SideNavItem label="Risk controls" icon={ShieldCheckIcon} isDisabled />
-            <SideNavItem label="Audit log" icon={DocumentTextIcon} isDisabled />
+          <SideNavSection title="Prossime funzionalità">
+            <SideNavItem label="Posizioni" icon={ChartBarIcon} isDisabled />
+            <SideNavItem label="Segnali" icon={SignalIcon} isDisabled />
+            <SideNavItem label="Agenti IA" icon={CommandLineIcon} isDisabled />
+            <SideNavItem label="Controlli del rischio" icon={ShieldCheckIcon} isDisabled />
+            <SideNavItem label="Registro attività" icon={DocumentTextIcon} isDisabled />
           </SideNavSection>
         </SideNav>
       }>
@@ -117,16 +118,16 @@ export default function OperationalShell() {
           <LayoutContent padding={6}>
             <VStack gap={5}>
               <HStack gap={2} wrap="wrap" vAlign="center">
-                <Token label="PAPER" color="blue" size="sm" description="Paper mode only. No broker execution." />
-                <Token label="AUTOMATION DISABLED" color="gray" size="sm" />
-                <Text type="supporting" color="secondary">FOUNDATION</Text>
+                <Token label="SIMULAZIONE" color="blue" size="sm" description="Modalità simulazione. Nessun ordine viene inviato al broker." />
+                <Token label="AUTOMAZIONE DISATTIVATA" color="gray" size="sm" />
+                <Text type="supporting" color="secondary">AMBIENTE LOCALE</Text>
               </HStack>
 
               <Section variant="transparent" padding={6}>
                 <VStack gap={2}>
-                  <Text type="supporting" color="secondary">OPERATIONAL OVERVIEW</Text>
-                  <Heading level={1}>System overview</Heading>
-                  <Text color="secondary">A read-only view of the local foundation. Trading services are not active.</Text>
+                  <Text type="supporting" color="secondary">STATO DEL SISTEMA</Text>
+                  <Heading level={1}>Panoramica</Heading>
+                  <Text color="secondary">Consulta lo stato dei servizi. Le funzioni di trading non sono ancora attive.</Text>
                 </VStack>
               </Section>
 
@@ -138,15 +139,15 @@ export default function OperationalShell() {
                       <Heading level={2}>{connection.label}</Heading>
                     </HStack>
                     <Button
-                      label="Refresh status" size="sm" variant="secondary"
+                      label="Aggiorna stato" size="sm" variant="secondary"
                       icon={<Icon icon={ArrowPathIcon} />}
                       isLoading={isRefreshing} onClick={() => void refresh()}
                     />
                   </HStack>
                   <Text>{connection.detail}</Text>
                   <Text type="supporting" color="secondary" xstyle={styles.meta}>
-                    {data ? `Last received check: ${data.checked_at.replace('T', ' ').replace(/(?:Z|\+00:00)$/, ' UTC')}` : 'No readiness check received yet.'}
-                    {' '}Refreshes every 10 seconds.
+                    {data ? `Ultimo aggiornamento: ${formatCheckedAt(data.checked_at)}` : 'Nessun aggiornamento ricevuto.'}
+                    {' '}Aggiornamento automatico ogni 10 secondi.
                   </Text>
                 </VStack>
               </Section>
@@ -154,20 +155,20 @@ export default function OperationalShell() {
               {(state === 'offline' || state === 'not_ready' || state === 'stale') && (
                 <Banner
                   status={state === 'offline' ? 'error' : 'warning'}
-                  title={state === 'not_ready' ? 'Infrastructure needs attention' : 'Current health is unknown'}
+                  title={state === 'not_ready' ? 'I servizi richiedono attenzione' : 'Stato attuale non confermato'}
                   description={state === 'not_ready'
-                    ? 'Check the API, database and migrations in your local setup. This view does not expose internal error details.'
-                    : 'The last observation is not a current health guarantee. Check the local services, then refresh.'}
+                    ? 'La connessione al database o il suo aggiornamento richiedono una verifica. Contatta l’amministratore del sistema.'
+                    : 'I dati disponibili non confermano lo stato attuale. Aggiorna lo stato; se il problema persiste, contatta l’amministratore del sistema.'}
                 />
               )}
 
               <Section id="service-health" variant="transparent" padding={0}>
                 <VStack gap={3}>
                   <HStack gap={3} hAlign="between" vAlign="center" wrap="wrap" paddingInline={6}>
-                    <Heading level={2}>Service readiness</Heading>
-                    <Text type="supporting" color="secondary">Observed status, no simulated metrics</Text>
+                    <Heading level={2}>Stato dei servizi</Heading>
+                    <Text type="supporting" color="secondary">Stato rilevato dai servizi</Text>
                   </HStack>
-                  <Table data={services} columns={serviceColumns} idKey="name" density="balanced" textOverflow="wrap" aria-label="Service readiness" />
+                  <Table data={services} columns={serviceColumns} idKey="name" density="balanced" textOverflow="wrap" aria-label="Stato dei servizi" />
                 </VStack>
               </Section>
 
@@ -175,16 +176,16 @@ export default function OperationalShell() {
                 <HStack gap={4} vAlign="start">
                   <Icon icon={ShieldCheckIcon} color="secondary" />
                   <VStack gap={1}>
-                    <Text weight="semibold">Execution remains locked</Text>
-                    <Text color="secondary">No trades can be submitted from this foundation. Risk validation, authentication and broker execution arrive in later phases.</Text>
+                    <Text weight="semibold">Invio degli ordini disattivato</Text>
+                    <Text color="secondary">Al momento non è possibile inviare ordini. Le funzioni di trading saranno disponibili dopo l’attivazione dei controlli del rischio, dell’accesso protetto e del collegamento al broker.</Text>
                   </VStack>
                 </HStack>
               </Card>
 
               <Section variant="transparent" padding={0}>
                 <EmptyState
-                  isCompact headingLevel={2} title="Trading activity is not available yet"
-                  description="Positions, signals, agent decisions and financial results will appear when their services are implemented and connected."
+                  isCompact headingLevel={2} title="Attività di trading non ancora disponibile"
+                  description="Posizioni, segnali, decisioni degli agenti e risultati saranno visibili dopo l’attivazione dei relativi servizi."
                 />
               </Section>
             </VStack>
@@ -192,7 +193,7 @@ export default function OperationalShell() {
         }
         footer={
           <LayoutFooter hasDivider>
-            <Text type="supporting" color="secondary">Local foundation · Paper only · Read-only status</Text>
+            <Text type="supporting" color="secondary">Ambiente locale · Simulazione · Sola consultazione</Text>
           </LayoutFooter>
         }
       />

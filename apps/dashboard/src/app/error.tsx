@@ -8,9 +8,9 @@ export default function ErrorPage({reset}: {error: Error & {digest?: string}; re
   return (
     <Section minHeight="100dvh" padding={6}>
       <EmptyState
-        headingLevel={1} title="The overview could not load"
-        description="System readiness is unknown. Automation remains disabled in this foundation."
-        actions={<Button label="Try again" onClick={reset} />}
+        headingLevel={1} title="Impossibile caricare la panoramica"
+        description="Lo stato dei servizi non è disponibile. L’automazione è disattivata."
+        actions={<Button label="Riprova" onClick={reset} />}
       />
     </Section>
   );
