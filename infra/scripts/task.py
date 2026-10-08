@@ -279,6 +279,7 @@ def main() -> int:
             "check",
             "test",
             "generate-api",
+            "retention",
         ],
     )
     parser.add_argument(
@@ -312,6 +313,11 @@ def main() -> int:
             initialize(values)
         elif args.task == "dev":
             dev(values)
+        elif args.task == "retention":
+            run(
+                [sys.executable, "-m", "backend.application.retention"],
+                runtime_environment("maintenance", values),
+            )
         else:
             service = {"bridge": "risk", "worker": "ai"}.get(args.task, args.task)
             run(service_command(service, values), runtime_environment(service, values))

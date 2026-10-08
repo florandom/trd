@@ -13,6 +13,7 @@ from sqlalchemy import insert, select, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import SQLAlchemyError
 
+from backend.application.domain_bootstrap import seed_domain_defaults
 from backend.infrastructure.database import ENVIRONMENT_PATTERN, SCHEMA_REVISION, Database
 from backend.infrastructure.models import AuditEvent, SettingVersion, SystemSetting, User
 
@@ -192,6 +193,7 @@ def bootstrap(settings: BootstrapSettings) -> BootstrapResult:
                         details={"keys": created},
                     )
                 )
+            seed_domain_defaults(connection, settings.environment_id, admin_id)
         return BootstrapResult(admin_created=admin_created, created_settings=tuple(created))
     except SQLAlchemyError as error:
         raise BootstrapError("database bootstrap failed; transaction rolled back") from error

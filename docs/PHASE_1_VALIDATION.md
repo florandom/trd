@@ -63,3 +63,5 @@ No Telegram, provider call, risk evaluation, broker command, EA or order simulat
 No login, session, settings mutation or trading endpoint is exposed. The bootstrap account exists for later authentication work. Keep the current app on loopback; production-looking remote API origins are rejected. Native Windows services, WSL boot supervision, TLS/Access, MT5 interactive-session behavior, reboot/reconciliation and demo broker acceptance remain unverified.
 
 Phase 2 is the full domain/database implementation. Phase 1 approval does not authorize starting that phase or enabling automation/live trading.
+
+On 8 October 2026, the user requested continued work (“procediamo da dove sei rimasto”); the next domain/database milestone is recorded separately in [Phase 2 validation](PHASE_2_VALIDATION.md).

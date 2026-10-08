@@ -1,4 +1,4 @@
-"""Migration-owned Phase 1 persistence; trading entities arrive in Phase 2."""
+"""Migration-owned persistence. Importing this module registers the entire schema."""
 
 from datetime import datetime
 from typing import Any
@@ -100,3 +100,6 @@ class Heartbeat(Base):
     observed_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
     )
+
+
+from backend.infrastructure import domain_models as domain_models  # noqa: E402

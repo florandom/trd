@@ -69,7 +69,7 @@ export default function OperationalShell() {
   const services: ServiceRow[] = [
     {name: 'Servizi di base', state: connection.label, detail: 'Verifica della connessione al database e del suo aggiornamento.', variant: connection.variant},
     {name: 'Telegram', state: 'Non collegato', detail: 'La ricezione dei segnali sarà disponibile in seguito.', variant: 'neutral'},
-    {name: 'Agenti IA', state: 'Non configurati', detail: 'Nessuna analisi o decisione automatica in corso.', variant: 'neutral'},
+    {name: 'Agenti IA', state: 'Non attivi', detail: 'Nessuna analisi o decisione automatica in corso.', variant: 'neutral'},
     {name: 'Rischio e ordini', state: 'Non attivi', detail: 'I controlli del rischio e l’invio degli ordini saranno disponibili in seguito.', variant: 'neutral'},
     {name: 'MetaTrader 5', state: 'Non collegato', detail: 'Nessun terminale o conto di trading collegato.', variant: 'neutral'},
   ];

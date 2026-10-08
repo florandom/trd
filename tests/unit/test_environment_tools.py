@@ -255,6 +255,28 @@ def test_bootstrap_and_migrations_receive_no_foreign_runtime_credentials(
     }
 
 
+def test_retention_task_uses_only_the_maintenance_runtime_scope(operator_root, monkeypatch):
+    _target, values = prepared_values(operator_root)
+    calls = []
+    monkeypatch.setattr(task, "read_environment", lambda: values)
+    monkeypatch.setattr(task, "run", lambda command, env=None: calls.append((command, env)))
+    monkeypatch.setattr(sys, "argv", ["task.py", "retention"])
+    assert task.main() == 0
+    command, projected = calls[0]
+    assert command[-1] == "backend.application.retention"
+    assert projected["DATABASE_URL"] == values["MAINTENANCE_DATABASE_URL"]
+    assert (
+        not {
+            "DATABASE_ADMIN_URL",
+            "MIGRATION_DATABASE_URL",
+            "ADMIN_BOOTSTRAP_PASSWORD",
+            "OPENAI_API_KEY",
+            "MT5_COMMAND_SIGNING_KEY",
+        }
+        & projected.keys()
+    )
+
+
 def test_task_error_message_cannot_echo_a_third_party_secret(operator_root, monkeypatch, capsys):
     monkeypatch.setattr(sys, "argv", ["task.py", "provision-db", "--from-process"])
 
