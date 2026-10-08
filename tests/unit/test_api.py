@@ -42,7 +42,7 @@ def test_liveness_is_independent_of_database_and_readiness_is_safe():
     assert UUID(response.headers["X-Trace-ID"])
 
 
-def test_ready_dto_and_phase1_has_no_administrative_or_execution_routes():
+def test_ready_dto_and_dashboard_has_no_execution_authority():
     app = create_app(settings(), lambda _settings: True)
     with TestClient(app) as client:
         response = client.get("/health/ready")
@@ -53,7 +53,9 @@ def test_ready_dto_and_phase1_has_no_administrative_or_execution_routes():
         assert response.json()["checked_at"].endswith("Z")
         for route in ("/docs", "/openapi.json", "/admin", "/bridge/commands", "/orders"):
             assert client.get(route).status_code == 404
-    assert set(app.openapi()["paths"]) == {"/health/live", "/health/ready"}
+    assert {"/health/live", "/health/ready", "/auth/me", "/config/confirm"} <= set(
+        app.openapi()["paths"]
+    )
 
 
 def test_bridge_has_separate_identity_and_liveness_only():

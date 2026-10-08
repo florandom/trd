@@ -1,4 +1,4 @@
-"""Phase 1 HTTP composition, with no authentication or trading endpoints."""
+"""HTTP composition for the authenticated dashboard and isolated bridge foundation."""
 
 from __future__ import annotations
 
@@ -10,9 +10,14 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from fastapi import FastAPI, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy import Engine
 
+from backend.api.body_limit import BodyLimit
+from backend.api.dashboard import dashboard_router
 from backend.api.schemas import HealthLiveness, HealthReadiness
+from backend.application.dashboard import DashboardService
 from backend.application.runtime import HeartbeatHook, HeartbeatRuntime, Probe
 from backend.domain.config import ApiSettings, BridgeSettings
 
@@ -36,7 +41,11 @@ def _lifespan(
 
 
 def create_app(
-    settings: ApiSettings, probe: Probe, heartbeat: HeartbeatHook | None = None
+    settings: ApiSettings,
+    probe: Probe,
+    heartbeat: HeartbeatHook | None = None,
+    *,
+    engine: Engine | None = None,
 ) -> FastAPI:
     app = FastAPI(
         title="Trading orchestration foundation",
@@ -46,6 +55,14 @@ def create_app(
         openapi_url=None,
         lifespan=_lifespan(settings, probe, heartbeat),
     )
+
+    app.add_middleware(BodyLimit)
+    app.include_router(dashboard_router(DashboardService(settings, engine)))
+
+    @app.exception_handler(RequestValidationError)
+    async def invalid_input(_request, _error):
+        # Never echo submitted passwords, tokens or configuration source data.
+        return JSONResponse(status_code=422, content={"detail": "INVALID_REQUEST"})
 
     @app.middleware("http")
     async def security_headers(request, call_next):

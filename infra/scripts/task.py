@@ -280,6 +280,7 @@ def main() -> int:
             "test",
             "generate-api",
             "retention",
+            "user-create",
         ],
     )
     parser.add_argument(
@@ -309,6 +310,11 @@ def main() -> int:
             migrate(values)
         elif args.task == "bootstrap":
             bootstrap(values)
+        elif args.task == "user-create":
+            run(
+                [sys.executable, "-m", "backend.application.users"],
+                operator_environment(values, {"MIGRATION_DATABASE_URL", "ENVIRONMENT_ID"}),
+            )
         elif args.task == "initialize":
             initialize(values)
         elif args.task == "dev":

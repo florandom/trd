@@ -9,6 +9,7 @@ from sqlalchemy import (
     CheckConstraint,
     ForeignKey,
     ForeignKeyConstraint,
+    Index,
     Integer,
     String,
     Text,
@@ -100,6 +101,35 @@ class Heartbeat(Base):
     observed_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
     )
+
+
+class AuthAttempt(Base):
+    __tablename__ = "auth_attempts"
+    __table_args__ = (CheckConstraint("attempts >= 1"),)
+    environment_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    bucket_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    window_started: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=func.clock_timestamp()
+    )
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class AuthChallenge(Base):
+    __tablename__ = "auth_challenges"
+    __table_args__ = (Index("ix_auth_challenges_expiry", "expires_at"),)
+    environment_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    expires_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
+
+
+class DashboardConfirmation(Base):
+    __tablename__ = "dashboard_confirmations"
+    environment_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    session_hash: Mapped[str] = mapped_column(ForeignKey("sessions.token_hash"), nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
+    consumed_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
 
 
 from backend.infrastructure import domain_models as domain_models  # noqa: E402

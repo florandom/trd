@@ -1,7 +1,8 @@
 """Scoped repositories share their caller's transaction; they never commit internally.
 
 Security-sensitive runtime writes call role-authenticated PostgreSQL functions.
-Configuration/prompt/registry administration remains operator-only until Phase 3.
+Dashboard configuration uses confirmed session-bound functions. Prompt and registry
+manifest administration remains operator-owned.
 """
 
 import re
@@ -495,6 +496,15 @@ class JobRepository(ScopedRepository):
 
 
 class RetentionRepository(ScopedRepository):
+    def prune_auth(self, *, limit: int = 100) -> dict[str, int]:
+        return dict(
+            self.call(
+                "SELECT * FROM public.prune_dashboard_auth(:environment,:limit)", {"limit": limit}
+            )
+            .mappings()
+            .one()
+        )
+
     def prune(self, *, limit: int = 100) -> dict[str, int]:
         return dict(
             self.call(

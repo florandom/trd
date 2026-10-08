@@ -122,6 +122,8 @@ class ApiSettings(ServiceSettings):
             raise ValueError("APP_URL must be a trusted HTTP(S) origin without credentials")
         if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
             raise ValueError("APP_URL must be an origin, not a path")
+        if self.auth_mfa_required:
+            raise ValueError("Local MFA is unavailable; remote deployment remains disabled")
         if self.auth_idle_ttl_seconds > self.auth_session_ttl_seconds:
             raise ValueError("Idle session lifetime must not exceed absolute session lifetime")
         if self.app_env == "production":
@@ -130,7 +132,7 @@ class ApiSettings(ServiceSettings):
             # No Access assertion verification or local MFA is implemented yet.
             # A remote-looking origin must not imply an authenticated dashboard.
             if parsed.hostname not in {"localhost", "127.0.0.1", "::1"}:
-                raise ValueError("Phase 1 production HTTP foundation must remain loopback-only")
+                raise ValueError("Remote production access requires verified external MFA")
         return self
 
 

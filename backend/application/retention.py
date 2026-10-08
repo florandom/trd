@@ -17,6 +17,7 @@ def main() -> int:
             raise RuntimeError("current migration is required")
         with DomainTransaction(database.engine, settings.environment_id) as uow:
             counts = uow.retention.prune(limit=100)
+            counts.update(uow.retention.prune_auth(limit=100))
         print(json.dumps({"status": "ok", **counts}))
         return 0
     except Exception as error:

@@ -61,6 +61,7 @@ class ScopedRecord(Base):
 class SessionRecord(ScopedRecord):
     __tablename__ = "sessions"
     __table_args__ = (
+        Index("ix_sessions_expiry", "expires_at"),
         UniqueConstraint("token_hash"),
         CheckConstraint("token_hash ~ '^[a-f0-9]{64}$'"),
         CheckConstraint("expires_at > created_at"),
