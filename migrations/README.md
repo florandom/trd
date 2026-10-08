@@ -24,6 +24,16 @@ Sessions/connections are local to each synchronous operation. Engine pools are s
 
 Bootstrap now also creates six disabled agents with immutable prompt/config versions, the deterministic offline `mock-v1` registry manifest and a conservative versioned risk baseline. Existing account passwords, model availability and configuration pointers are preserved. Model pricing/capability manifests, audit and historical versions cannot be overwritten; changing a manifest requires a new registry ID/version. Availability changes use an audited operator repository.
 
-Runtime readiness requires revision `0002_domain`; the public health DTO's `phase: 1` remains the infrastructure-readiness contract, rather than a project progress counter. Update backend processes and apply forward migrations as one release. The API still exposes health endpoints only, and no authentication/session or administrative HTTP route has been added in this phase.
+Runtime readiness now requires revision `0003_dashboard`; the public health DTO's `phase: 1` remains the infrastructure-readiness contract, rather than a project progress counter. Update backend processes and apply forward migrations as one release. The Phase 2 health-only API is now extended by Phase 3 authenticated dashboard routes.
 
 Raw cleanup is available as `pnpm retention:run`: one transaction, up to 100 Telegram and 100 AI bodies, configured default age seven days. It reads the current versioned policy and nulls expired raw fields; it preserves keys, hashes, validated summaries, audit and trading/recovery anchors. The maintenance role cannot erase bodies through direct table updates. Automatic periodic cleanup is left for the ingestion/maintenance integration; this phase supplies the safe batch operation.
+
+## Authenticated dashboard extension
+
+`0003_dashboard` adds three authentication/confirmation tables (37 mapped tables
+total), expiry indexes, safe operational views and session-bound configuration
+publication. Only the API owns authentication records or can look up a local
+credential. It receives no direct risk/configuration/financial table write authority.
+The maintenance-only `prune_dashboard_auth` function removes bounded expired batches;
+`pnpm retention:run` invokes it with raw-evidence retention. Active sessions and
+configuration/audit history survive cleanup. See [the Phase 3 contract](../docs/DASHBOARD_AUTH.md).

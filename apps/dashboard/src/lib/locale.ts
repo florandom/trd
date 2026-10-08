@@ -4,8 +4,12 @@ export const DASHBOARD_LOCALE = 'it-IT';
 
 const dateTime = new Intl.DateTimeFormat(DASHBOARD_LOCALE, {
   timeZone: 'Europe/Rome',
-  day: '2-digit', month: '2-digit', year: 'numeric',
-  hour: '2-digit', minute: '2-digit', second: '2-digit',
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
   timeZoneName: 'short',
 });
 
@@ -39,6 +43,17 @@ export const astryxItalianOverrides = {
     '@astryx.banner.expand': 'Espandi',
     '@astryx.button.loading': 'Caricamento in corso',
     '@astryx.spinner.loading': 'Caricamento in corso',
+    '@astryx.dialog.close': 'Chiudi',
+    '@astryx.field.required': 'Obbligatorio',
+    '@astryx.field.optional': 'Facoltativo',
+    '@astryx.textInput.clearLabel': 'Cancella {label}',
+    '@astryx.selector.placeholder': 'Scegli un’opzione',
+    '@astryx.selector.searchPlaceholder': 'Cerca…',
+    '@astryx.selector.empty': 'Nessuna opzione',
+    '@astryx.selector.emptySearchResults': 'Nessun risultato',
+    '@astryx.selector.searchOptions': 'Cerca opzioni',
+    '@astryx.selector.clearLabel': 'Cancella {label}',
+    '@astryx.selector.resultCount': '{count} risultati',
     '@astryx.table.label': 'Tabella',
     '@astryx.table.noData': 'Nessun dato disponibile',
   },

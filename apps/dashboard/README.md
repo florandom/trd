@@ -18,4 +18,22 @@ The monorepo standalone entrypoint is `.next/standalone/apps/dashboard/server.js
 
 The browser refreshes every 10 seconds, treats observations older than 30 seconds (or too far in the future) as stale, and clearly marks failed requests as unavailable even when an earlier observation exists. Observation time remains visible in the Italian time zone. Tests cover boundary validation, stale/future observations, status-code consistency, error redaction and redirect/cache behavior.
 
-Use root workspace scripts or `pnpm --filter @trd/dashboard <dev|typecheck|lint|test|build|start>`. Containers can override the host binding with their command. Before externally exposing this foundation, implement the later authentication/security phases.
+Use root workspace scripts or `pnpm --filter @trd/dashboard <dev|typecheck|lint|test|build|start>`. Containers can override the host binding with their command. External production exposure still requires verified MFA/Access and the later deployment security gate.
+
+## Phase 3 operational dashboard
+
+The existing shell-side-nav frame now wraps authenticated routes. Login uses the
+Astryx login template; configuration sections adapt the settings template inside
+the existing shell. All copy and accessibility labels remain Italian. Next server
+layouts check the opaque cookie with the API. The allowlisted same-origin transport
+forwards only TRD cookies, Origin and CSRF headers and never provider/database secrets.
+
+ADMIN can confirm versioned retention, tighter risk and disabled-agent configuration
+changes. VIEWER fields are read-only and the API rejects writes. Sessions expire on
+idle/absolute limits; activity checks are bounded and readiness polling does not
+keep a session alive. Operational data, registry, audit and heartbeat lists use real
+database views; unavailable integrations show honest empty/inactive states.
+
+Eleven frontend tests, strict types, lint and a production build pass. Browser
+verification covers ADMIN save/audit/logout, VIEWER read-only access, stale notices
+and 1280px/390px layouts in a disposable database. See [Phase 3 evidence](../../docs/PHASE_3_VALIDATION.md).
