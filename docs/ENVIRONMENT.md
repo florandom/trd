@@ -1,6 +1,30 @@
 # Environment and configuration matrix
 
-Status: Phase 1 foundation, 2 October 2026. `.env.example`, secure local generation and service-scoped validation are implemented. The full matrix below remains the phased target contract: reserved integration variables do not imply implemented adapters. No production configuration or broker credential has been created.
+Status: Phase 4, 9 October 2026. `.env.example`, private local generation, service-scoped validation, dashboard authentication and the read-only Telegram adapter are implemented. Telegram requires operator enrollment and is disabled in the current local deployment. Provider AI, broker execution and external-access verification remain future work. Historical Phase 1 observations below retain their original scope; the full variable matrix includes reserved future fields.
+
+## Current Telegram additions
+
+Only the collector receives Telegram application credentials and its session key.
+Dashboard users enter source references through confirmed configuration; phone,
+login codes, two-step passwords and session material never enter that workflow.
+The local terminal command is `pnpm telegram:enroll`; Compose enrollment uses its
+dedicated volume. See [the maintained Italian team guide](team/GUIDA_PREPARAZIONE.md)
+and [the Telegram contract](TELEGRAM.md) for replacement, key rotation and limits.
+
+| Variable | Implemented default / bounds |
+| --- | --- |
+| TELEGRAM_SESSION_KEY_ID | `local-v1`; authenticated envelope key identifier |
+| TELEGRAM_COLLECTOR_IDENTITY | `primary`; matches dashboard-owned sources |
+| TELEGRAM_POLL_SECONDS | `30`; 5–300 seconds |
+| TELEGRAM_BACKFILL_MAX_AGE_SECONDS | `86400`; 60–604800 seconds |
+| TELEGRAM_HISTORY_BATCH_SIZE | `100`; 1–100 records per history request |
+| TELEGRAM_REQUEST_TIMEOUT_SECONDS | `20`; 1–30 seconds per operation |
+| TELEGRAM_SIGNAL_MAX_AGE_SECONDS | `900`; 30–3600 seconds; preliminary analysis-job freshness only |
+
+Enabled collection validates API ID, 32-hex API hash and independent 64-hex
+encryption key. It does not enable trading, providers, sending or joining groups.
+Existing private `.env` values are preserved; add new fields explicitly when
+customizing defaults. Session ciphertext is excluded from Git and container context.
 
 ## Observed local environment
 

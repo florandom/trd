@@ -1,9 +1,11 @@
 # Autonomous trading orchestration platform
 
-Phase 3 adds an authenticated Italian dashboard with ADMIN/VIEWER roles, protected
-sessions, operational database pages and confirmed, versioned configuration edits.
-The domain/database foundation remains intact. Trading, external AI calls, Telegram
-collection and broker commands remain disabled. Keep this deployment on loopback;
+Phase 4 adds client-managed Telegram sources, encrypted account enrollment and a
+bounded read-only collector, with durable message revisions, recovery and account
+fencing. The Italian dashboard retains ADMIN/VIEWER roles and confirmed changes.
+Telegram collection requires operator credentials/enrollment and remains disabled
+in the current local installation. Trading, external AI and broker commands remain
+disabled. Keep this deployment on loopback;
 external production access still requires the later verified MFA/security gate.
 
 ## Local boot
@@ -66,7 +68,7 @@ pnpm api:generate
 git diff --exit-code -- packages/shared-types
 ```
 
-`pnpm check` runs Python lint/unit tests and frontend typecheck, lint, tests and production build. PostgreSQL integration tests require an explicit `TEST_ADMIN_DATABASE_URL`; they create and drop only random `trd_test_*` databases. Never supply a production server. CI includes these integration tests and Windows foundation-script checks. See [Phase 3 validation evidence](docs/PHASE_3_VALIDATION.md),
+`pnpm check` runs Python lint/unit tests and frontend typecheck, lint, tests and production build. PostgreSQL integration tests require an explicit `TEST_ADMIN_DATABASE_URL`; they create and drop only random `trd_test_*` databases. Never supply a production server. CI includes these integration tests and Windows foundation-script checks. See [Phase 4 validation evidence](docs/PHASE_4_VALIDATION.md), [the Telegram contract](docs/TELEGRAM.md), [Phase 3 validation evidence](docs/PHASE_3_VALIDATION.md),
 [the authentication contract](docs/DASHBOARD_AUTH.md), [Phase 2 validation evidence](docs/PHASE_2_VALIDATION.md) and the [earlier infrastructure validation](docs/PHASE_1_VALIDATION.md) for results and limits.
 
 ## Structure and documentation
@@ -82,6 +84,7 @@ git diff --exit-code -- packages/shared-types
 | `tests` | Configuration, security boundary and PostgreSQL verification |
 
 - [Environment and secret scoping](docs/ENVIRONMENT.md)
+- [Italian customer guide](docs/cliente/GUIDA_CLIENTE.docx) and [practical team guide](docs/team/GUIDA_PREPARAZIONE.docx), maintained alongside their Markdown sources
 - [Architecture](docs/ARCHITECTURE.md), [threat model](docs/THREAT_MODEL.md) and [decisions](docs/adr/README.md)
 - [Domain/database contracts and permissions](docs/DOMAIN_DATABASE.md)
 - [Windows deployment foundation](docs/DEPLOYMENT_WINDOWS.md)

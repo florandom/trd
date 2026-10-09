@@ -123,3 +123,15 @@ Phase 10 must finish service installation, role-file export/ACL verification, da
 MT5 is a separate interactive process. The safe default requires a dedicated trading-user login after reboot, then broker/position/command reconciliation before new orders. Disconnecting RDP normally preserves the session; signing out stops its processes. Optional dedicated-user Autologon and desktop locking require a later explicit security decision and real reboot test. No script in this foundation configures that behavior. See [Windows deployment research and evidence gates](research/WINDOWS.md).
 
 Current validation can cover PowerShell parsing and read-only plan/template previews on macOS. It cannot establish Windows prerequisite discovery, service identities, restart behavior, certificate trust, or pre-login/MT5 recovery. Those remain explicit acceptance gates rather than inferred success.
+
+
+## Phase 4 Telegram preparation
+
+The read-only collector now requires an operator-enrolled encrypted StringSession,
+a service-scoped application API ID/hash and independent encryption key. Stop the
+collector for enrollment/replacement/rotation. Restrict session directory/file ACLs
+to its service account and authorized operators, preserve key/ciphertext separately
+in backup, and avoid collecting the same account from independent database copies.
+The implementation is exercised on macOS and Linux containers; native Windows
+collector enrollment, ACLs and recovery remain target-host acceptance gates. See
+[the practical Italian guide](team/GUIDA_PREPARAZIONE.md) and [Telegram contract](TELEGRAM.md).

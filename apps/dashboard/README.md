@@ -37,3 +37,20 @@ database views; unavailable integrations show honest empty/inactive states.
 Eleven frontend tests, strict types, lint and a production build pass. Browser
 verification covers ADMIN save/audit/logout, VIEWER read-only access, stale notices
 and 1280px/390px layouts in a disposable database. See [Phase 3 evidence](../../docs/PHASE_3_VALIDATION.md).
+
+
+## Phase 4 Telegram sources and messages
+
+ADMIN can create a source from a public username/link or negative joined-group ID,
+then confirm a versioned rename or enabled-state change. References remain immutable.
+VIEWER controls are read-only, including the Italian accessible selector label.
+The source table distinguishes pending, backfill, gaps, unavailable, flood wait,
+disabled and recent verified observations; stale success never displays as verified.
+The message table shows latest event/version and an escaped 240-character preview.
+The fixed same-origin proxy now permits the authenticated telegram-messages collection.
+
+Browser acceptance uses synthetic data in a disposable PostgreSQL database, covering
+creation via public link, confirmation, rename/disable, audit, reader access, escaped
+text, stale observations and mobile navigation/forms. The overview refers users to
+the source status rather than claiming an unobserved Telegram connection. See
+[Phase 4 evidence](../../docs/PHASE_4_VALIDATION.md).

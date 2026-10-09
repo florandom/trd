@@ -1,4 +1,14 @@
-# Phase 3 dashboard and authentication contract
+# Dashboard and authentication contract through Phase 4
+
+Phase 4 retains the Phase 3 authentication boundary and adds `source` confirmation
+changes. Source creation uses expected version zero; existing sources use their
+current positive version. Target identity is a UUID. The server validates and
+canonicalizes source references and restricts edits to name/enabled state. Source
+cap, uniqueness, session, role, expiry, replay and concurrency checks run in PostgreSQL.
+Only ADMIN may confirm or apply these changes. The authenticated `telegram-messages`
+collection exposes the latest event and escaped 240-character preview; credentials,
+account sessions and peer access hashes remain unavailable to browser clients.
+See [the Telegram contract](TELEGRAM.md) and [Phase 4 evidence](PHASE_4_VALIDATION.md).
 
 ## Access and sessions
 

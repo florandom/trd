@@ -1,6 +1,22 @@
 # Domain and database contracts
 
-Implemented in Phase 2 on 8 October 2026. This is a persistence/domain foundation; it does not evaluate risk, contact providers, collect Telegram or execute trades. [Validation](PHASE_2_VALIDATION.md) records the acceptance evidence.
+The foundation below was implemented in Phase 2 on 8 October 2026. Phase 4 adds the
+read-only Telegram collector and its fenced storage contract; risk evaluation,
+external providers and trade execution remain unavailable. Historical foundation
+[validation](PHASE_2_VALIDATION.md) and [current Telegram evidence](PHASE_4_VALIDATION.md)
+record their separate acceptance scopes.
+
+## Phase 4 additions
+
+Revision `0004_telegram` brings the schema to 39 tables, adding account leases and
+source recovery state. It extends source configuration/resolution and immutable
+message versions with event kind, semantic revision digest, publication date and
+media metadata. The collector uses lease-fenced SQL functions; direct anchor/version
+INSERT is revoked. Dashboard source changes use the existing confirmed ADMIN workflow.
+Safe source and latest-message views expose status and bounded text previews while
+withholding session credentials and peer access hashes. Disable/edit/delete invalidate
+pending analysis and unsent proposals without rewriting delivered commands or
+reservation evidence. [The Telegram contract](TELEGRAM.md) defines recovery bounds.
 
 ## Records and boundaries
 
