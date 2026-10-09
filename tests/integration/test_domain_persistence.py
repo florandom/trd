@@ -377,7 +377,9 @@ def test_viewer_cannot_revise_settings_even_via_direct_database_function(seeded)
 
 def test_message_duplicate_edit_and_stale_delivery_are_durable(seeded):
     db, source = seeded
-    engine = engine_for(db, "collector")
+    # The legacy raw append primitive is operator-only after Phase 4 fencing.
+    # Real collector-role ingestion is covered by test_telegram.py.
+    engine = db.migration_engine
 
     def record(body="original", observed_at=OLD):
         with DomainTransaction(engine, "test") as uow:
@@ -385,20 +387,17 @@ def test_message_duplicate_edit_and_stale_delivery_are_durable(seeded):
                 source_id=source, message_id="9", body=body, observed_at=observed_at
             )
 
-    try:
-        with ThreadPoolExecutor(max_workers=2) as pool:
-            receipts = list(pool.map(lambda _: record(), range(2)))
-        assert len({r.message_id for r in receipts}) == 1
-        assert sum(r.created for r in receipts) == 1
-        edited = record("edited", OLD + timedelta(minutes=1))
-        assert edited.version == 2
-        assert record("late original", OLD).body_hash == edited.body_hash
-        with pytest.raises(IdentityConflict):
-            record("conflicting edit", OLD + timedelta(minutes=1))
-        with db.migration_engine.connect() as connection:
-            assert len(connection.execute(select(TelegramMessageVersion.version)).all()) == 2
-    finally:
-        engine.dispose()
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        receipts = list(pool.map(lambda _: record(), range(2)))
+    assert len({r.message_id for r in receipts}) == 1
+    assert sum(r.created for r in receipts) == 1
+    edited = record("edited", OLD + timedelta(minutes=1))
+    assert edited.version == 2
+    assert record("late original", OLD).body_hash == edited.body_hash
+    with pytest.raises(IdentityConflict):
+        record("conflicting edit", OLD + timedelta(minutes=1))
+    with db.migration_engine.connect() as connection:
+        assert len(connection.execute(select(TelegramMessageVersion.version)).all()) == 2
 
 
 def test_signal_intent_is_deduplicated_under_concurrency(seeded):

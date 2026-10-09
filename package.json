@@ -14,6 +14,7 @@
     "db:migrate": "node infra/scripts/python-task.mjs migrate",
     "db:bootstrap": "node infra/scripts/python-task.mjs bootstrap",
     "user:create": "node infra/scripts/python-task.mjs user-create",
+    "telegram:enroll": "node infra/scripts/python-task.mjs telegram-enroll",
     "retention:run": "node infra/scripts/python-task.mjs retention",
     "check": "node infra/scripts/python-task.mjs check",
     "typecheck": "pnpm --filter @trd/dashboard typecheck",

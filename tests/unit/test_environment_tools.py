@@ -676,7 +676,7 @@ def test_compose_runtime_scopes_and_loopback_publishing():
                 "MIGRATION_DATABASE_URL",
                 "ADMIN_BOOTSTRAP_PASSWORD",
                 "OPENAI_API_KEY",
-                "TELEGRAM_API_HASH",
+                *(set() if service == "telegram" else {"TELEGRAM_API_HASH"}),
                 "MT5_COMMAND_SIGNING_KEY",
             }
             & scoped.keys()
@@ -689,7 +689,7 @@ def test_compose_runtime_scopes_and_loopback_publishing():
     assert set(services["dashboard"]["environment"]) == {"API_INTERNAL_URL", "HOSTNAME", "PORT"}
     assert services["initialize"]["restart"] == "no"
     assert services["worker"]["environment"]["AI_PROVIDER_MODE"] == "mock"
-    assert services["telegram"]["environment"]["TELEGRAM_ENABLED"] == "false"
+    assert services["telegram"]["environment"]["TELEGRAM_ENABLED"] == "${TELEGRAM_ENABLED:-false}"
     for configuration in services.values():
         assert "env_file" not in configuration
         for published in configuration.get("ports", []):

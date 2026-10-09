@@ -10,6 +10,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     CheckConstraint,
     ForeignKey,
@@ -92,11 +93,55 @@ class TradingAccount(ScopedRecord):
 
 class TelegramSource(ScopedRecord):
     __tablename__ = "telegram_sources"
-    __table_args__ = (UniqueConstraint("environment_id", "collector_identity", "peer_id"),)
+    __table_args__ = (
+        UniqueConstraint("environment_id", "collector_identity", "peer_id"),
+        UniqueConstraint("environment_id", "collector_identity", "reference"),
+        CheckConstraint("version >= 1"),
+        choice("resolution_state", "PENDING RESOLVED UNAVAILABLE"),
+    )
     collector_identity: Mapped[str] = mapped_column(String(64), nullable=False)
     peer_id: Mapped[str] = mapped_column(String(32), nullable=False)
     name: Mapped[str] = mapped_column(String(160), nullable=False)
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    reference: Mapped[str | None] = mapped_column(String(160))
+    access_hash: Mapped[str | None] = mapped_column(String(32))
+    peer_kind: Mapped[str | None] = mapped_column(String(8))
+    version: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
+    resolution_state: Mapped[str] = mapped_column(
+        String(16), nullable=False, server_default="PENDING"
+    )
+
+
+class CollectorLease(Base):
+    __tablename__ = "telegram_collector_leases"
+    __table_args__ = (
+        CheckConstraint("account_id ~ '^[1-9][0-9]{0,19}$'"),
+        CheckConstraint("generation >= 1"),
+    )
+    account_id: Mapped[str] = mapped_column(String(20), primary_key=True)
+    environment_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    owner: Mapped[str] = mapped_column(String(128), nullable=False)
+    generation: Mapped[int] = mapped_column(Integer, nullable=False)
+    lease_until: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
+    retry_after: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+
+
+class CollectorSourceState(Base):
+    __tablename__ = "telegram_source_state"
+    __table_args__ = (
+        fk("source_id", "telegram_sources"),
+        CheckConstraint("last_message_id >= 0 AND delete_cursor >= 0"),
+        choice("status", "PENDING ACTIVE BACKFILL GAP UNAVAILABLE FLOOD_WAIT DISABLED"),
+    )
+    environment_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    source_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    last_message_id: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default="0")
+    delete_cursor: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default="0")
+    status: Mapped[str] = mapped_column(String(16), nullable=False, server_default="PENDING")
+    checked_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+    last_success_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+    gap_since: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+    error_code: Mapped[str | None] = mapped_column(String(32))
 
 
 class TelegramMessage(ScopedRecord):
@@ -118,12 +163,18 @@ class TelegramMessageVersion(Base):
         CheckConstraint("version >= 1"),
         CheckConstraint("body_hash ~ '^[a-f0-9]{64}$'"),
         Index("ix_telegram_raw_retention", "environment_id", "created_at"),
+        UniqueConstraint("environment_id", "message_id", "revision_hash"),
+        choice("event_kind", "NEW EDIT DELETE"),
     )
     environment_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     message_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
     version: Mapped[int] = mapped_column(Integer, primary_key=True)
     body_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     raw_body: Mapped[str | None] = mapped_column(Text)
+    event_kind: Mapped[str] = mapped_column(String(8), nullable=False, server_default="NEW")
+    revision_hash: Mapped[str | None] = mapped_column(String(64))
+    published_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+    media_kind: Mapped[str] = mapped_column(String(8), nullable=False, server_default="NONE")
     observed_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), nullable=False, server_default=func.now()

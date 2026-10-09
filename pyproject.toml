@@ -14,6 +14,8 @@ dependencies = [
   "argon2-cffi==25.1.0",
   "structlog==26.1.0",
   "httpx==0.28.1",
+  "Telethon==1.45.0",
+  "cryptography==50.0.2",
   "python-dotenv>=1.1,<2",
 ]
 

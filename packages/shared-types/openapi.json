@@ -50,7 +50,7 @@
         "additionalProperties": false,
         "properties": {
           "expected_version": {
-            "minimum": 1.0,
+            "minimum": 0.0,
             "title": "Expected Version",
             "type": "integer"
           },
@@ -58,7 +58,8 @@
             "enum": [
               "settings",
               "risk",
-              "agent"
+              "agent",
+              "source"
             ],
             "title": "Kind",
             "type": "string"

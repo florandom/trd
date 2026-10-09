@@ -10,6 +10,7 @@ from hashlib import sha256
 from hmac import compare_digest
 from threading import BoundedSemaphore
 from typing import Any
+from uuid import UUID
 
 from argon2 import PasswordHasher, Type
 from argon2.exceptions import VerificationError
@@ -20,6 +21,7 @@ from sqlalchemy.exc import DBAPIError
 
 from backend.domain.config import ApiSettings
 from backend.domain.contracts import AgentConfiguration, RiskPolicy
+from backend.domain.telegram import SourceConfiguration
 from backend.infrastructure.database import create_database_engine
 
 HASHER = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=1, type=Type.ID)
@@ -254,6 +256,7 @@ class DashboardService:
             "orders": ("api_orders", "created_at DESC,id"),
             "signals": ("api_signals", "created_at DESC,id"),
             "sources": ("dashboard_sources", "name,id"),
+            "telegram-messages": ("dashboard_telegram_messages", "observed_at DESC,id"),
             "costs": ("dashboard_costs", "created_at DESC,id"),
         }
         if collection not in views:
@@ -309,6 +312,8 @@ class DashboardService:
     def validate_change(self, payload: dict[str, Any]) -> dict:
         kind, target, value = payload["kind"], payload["target"], payload["value"]
         try:
+            if kind != "source" and payload["expected_version"] < 1:
+                raise ValueError("configuration version required")
             if kind == "settings":
                 allowed = {
                     "raw_log_retention_days",
@@ -325,6 +330,9 @@ class DashboardService:
                 current = next(r for r in rows if r["key"] == target)
                 policy.within(RiskPolicy.model_validate(current["policy"]))
                 payload["value"] = policy.model_dump(mode="json")
+            elif kind == "source":
+                UUID(target)
+                payload["value"] = SourceConfiguration.model_validate(value).model_dump(mode="json")
             elif kind == "agent":
                 config = AgentConfiguration.model_validate(value)
                 if config.enabled or config.max_cost_usd != 0 or config.max_output_tokens > 4096:

@@ -7,7 +7,7 @@ from typing import Any, Protocol
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
-SCHEMA_REVISION = "0003_dashboard"
+SCHEMA_REVISION = "0004_telegram"
 SERVICES = frozenset({"api", "collector", "ai", "risk", "maintenance"})
 HEARTBEAT_STATUSES = frozenset({"STARTING", "HEALTHY", "DEGRADED", "STOPPED"})
 ENVIRONMENT_PATTERN = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")

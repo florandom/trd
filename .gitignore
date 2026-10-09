@@ -5,6 +5,7 @@
 !.env.*.example
 *.session
 *.session-journal
+*.session.enc
 *.pem
 *.key
 *.pfx

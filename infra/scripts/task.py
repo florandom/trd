@@ -281,6 +281,7 @@ def main() -> int:
             "generate-api",
             "retention",
             "user-create",
+            "telegram-enroll",
         ],
     )
     parser.add_argument(
@@ -314,6 +315,11 @@ def main() -> int:
             run(
                 [sys.executable, "-m", "backend.application.users"],
                 operator_environment(values, {"MIGRATION_DATABASE_URL", "ENVIRONMENT_ID"}),
+            )
+        elif args.task == "telegram-enroll":
+            run(
+                [sys.executable, "-m", "backend.integrations.telegram.enroll"],
+                runtime_environment("collector", values),
             )
         elif args.task == "initialize":
             initialize(values)

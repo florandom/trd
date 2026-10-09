@@ -1,4 +1,4 @@
-"""Scoped runtime settings. Phase 1 cannot authorize trading or ingestion."""
+"""Scoped runtime settings. Trading authority remains disabled."""
 
 from __future__ import annotations
 
@@ -139,12 +139,43 @@ class ApiSettings(ServiceSettings):
 class CollectorSettings(ServiceSettings):
     service_name: Literal["collector"] = "collector"
     telegram_enabled: bool = False
+    telegram_api_id: int | None = Field(default=None, ge=1, le=2_147_483_647)
+    telegram_api_hash: SecretStr | None = None
+    telegram_session_encryption_key: SecretStr | None = None
+    telegram_session_key_id: str = Field(default="local-v1", pattern=r"^[A-Za-z0-9_-]{1,64}$")
+    telegram_session_path: Path | None = None
+    telegram_collector_identity: str = Field(default="primary", pattern=r"^[A-Za-z0-9_-]{1,64}$")
+    telegram_poll_seconds: int = Field(default=30, ge=5, le=300)
+    telegram_backfill_max_age_seconds: int = Field(default=86400, ge=60, le=604800)
+    telegram_history_batch_size: int = Field(default=100, ge=1, le=100)
+    telegram_request_timeout_seconds: int = Field(default=20, ge=1, le=30)
+    telegram_signal_max_age_seconds: int = Field(default=900, ge=30, le=3600)
+
+    @field_validator("telegram_api_id", mode="before")
+    @classmethod
+    def empty_api_id(cls, value):
+        return None if value == "" else value
 
     @model_validator(mode="after")
-    def ingestion_is_not_implemented(self) -> CollectorSettings:
+    def validate_collector(self) -> CollectorSettings:
         if self.telegram_enabled:
-            raise ValueError("Telegram ingestion is unavailable until Phase 4")
+            self.require_credentials()
         return self
+
+    def require_credentials(self) -> None:
+        import re
+
+        if self.telegram_api_id is None or self.telegram_api_hash is None:
+            raise ValueError("Telegram application credentials are required")
+        if not re.fullmatch(r"[a-fA-F0-9]{32}", self.telegram_api_hash.get_secret_value()):
+            raise ValueError("Telegram API hash must use its hexadecimal encoding")
+        if self.telegram_session_encryption_key is None or not re.fullmatch(
+            r"[a-fA-F0-9]{64}", self.telegram_session_encryption_key.get_secret_value()
+        ):
+            raise ValueError("Telegram session encryption requires a 256-bit hexadecimal key")
+        if self.app_env == "production" and self.telegram_session_path is not None:
+            if not self.telegram_session_path.is_absolute():
+                raise ValueError("Production Telegram session path must be absolute")
 
 
 class AiSettings(ServiceSettings):
