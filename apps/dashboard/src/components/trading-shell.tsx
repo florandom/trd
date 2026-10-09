@@ -48,6 +48,7 @@ const NAV = [
   ['/signals', 'Segnali', SignalIcon],
   ['/positions', 'Posizioni', ChartBarIcon],
   ['/sources', 'Fonti Telegram', ChatBubbleLeftRightIcon],
+  ['/telegram-messages', 'Messaggi Telegram', ChatBubbleLeftRightIcon],
   ['/agents', 'Agenti IA', CommandLineIcon],
   ['/models', 'Registro modelli', CpuChipIcon],
   ['/risk', 'Controlli del rischio', ShieldCheckIcon],

@@ -27,7 +27,7 @@ import {
 import {formatCheckedAt} from '@/lib/locale';
 import {useSession} from './trading-shell';
 
-type Kind = 'settings' | 'risk' | 'agent';
+type Kind = 'settings' | 'risk' | 'agent' | 'source';
 type Diff = {name: string; before: string; after: string} & Record<
   string,
   unknown
@@ -52,7 +52,11 @@ export default function ConfigurationEditor({
   const user = useSession();
   const canEdit = user.role === 'ADMIN';
   const original = (
-    kind === 'risk' ? row.policy : kind === 'agent' ? row : {value: row.value}
+    kind === 'risk'
+      ? row.policy
+      : kind === 'agent' || kind === 'source'
+        ? row
+        : {value: row.value}
   ) as Record<string, unknown>;
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(
@@ -76,8 +80,12 @@ export default function ConfigurationEditor({
       ? (SETTING_LABELS[String(row.key)] ?? 'Conservazione dei dati')
       : kind === 'risk'
         ? 'Limiti di rischio'
-        : (AGENT_LABELS[String(row.name)] ?? 'Agente IA');
-  const version = Number(row.current_version);
+        : kind === 'source'
+          ? row.id
+            ? String(row.name)
+            : 'Nuova fonte Telegram'
+          : (AGENT_LABELS[String(row.name)] ?? 'Agente IA');
+  const version = Number(kind === 'source' ? row.version : row.current_version);
   function field(key: string, label: string, readOnly = false) {
     return (
       <TextInput
@@ -135,6 +143,33 @@ export default function ConfigurationEditor({
           };
         });
         value = policy;
+      } else if (kind === 'source') {
+        value = {
+          name: values.name ?? '',
+          reference: values.reference ?? '',
+          enabled: values.enabled === 'true',
+        };
+        changes = [
+          {
+            name: 'Nome',
+            before: String(row.name || 'Nuova fonte'),
+            after: values.name ?? '',
+          },
+          {
+            name: 'Canale o gruppo',
+            before: String(row.reference || 'Da verificare'),
+            after: values.reference ?? '',
+          },
+          {
+            name: 'Lettura dei messaggi',
+            before: row.id
+              ? row.enabled
+                ? 'Autorizzata'
+                : 'Disattivata'
+              : 'Non configurata',
+            after: values.enabled === 'true' ? 'Autorizzata' : 'Disattivata',
+          },
+        ];
       } else {
         if (
           !/^\d+$/.test(values.timeout_seconds ?? '') ||
@@ -182,7 +217,13 @@ export default function ConfigurationEditor({
         throw new Error('Nessuna modifica da salvare.');
       const change: Change = {
         kind,
-        target: String(kind === 'agent' ? row.id : row.key),
+        target: String(
+          kind === 'source'
+            ? row.id || crypto.randomUUID()
+            : kind === 'agent'
+              ? row.id
+              : row.key
+        ),
         expected_version: version,
         value,
       };
@@ -231,7 +272,9 @@ export default function ConfigurationEditor({
                 ? 'Puoi ridurre i limiti attuali. Stop loss e take profit rimangono obbligatori.'
                 : kind === 'agent'
                   ? 'Prepara la configurazione. L’agente resterà disattivato.'
-                  : 'Imposta il periodo di conservazione. Le evidenze necessarie alle operazioni restano protette.'}
+                  : kind === 'source'
+                    ? 'Autorizza la lettura di un canale o gruppo accessibile all’account collegato. La verifica avviene dopo il salvataggio.'
+                    : 'Imposta il periodo di conservazione. Le evidenze necessarie alle operazioni restano protette.'}
             </Text>
             {!canEdit && (
               <Text color="secondary">
@@ -249,6 +292,32 @@ export default function ConfigurationEditor({
                   <Token label="STOP LOSS OBBLIGATORIO" color="gray" />
                   <Token label="TAKE PROFIT OBBLIGATORIO" color="gray" />
                 </HStack>
+              </>
+            ) : kind === 'source' ? (
+              <>
+                {field('name', 'Nome della fonte')}
+                {field(
+                  'reference',
+                  'Canale o gruppo (@nome, link pubblico t.me o ID negativo)',
+                  !!row.id
+                )}
+                <Selector
+                  label="Lettura dei messaggi"
+                  value={values.enabled ?? 'false'}
+                  options={[
+                    {value: 'true', label: 'Autorizzata'},
+                    {value: 'false', label: 'Disattivata'},
+                  ]}
+                  onChange={(value) =>
+                    setValues((previous) => ({...previous, enabled: value}))
+                  }
+                  isReadOnly={!canEdit || busy}
+                />
+                <Text color="secondary">
+                  Gli inviti privati richiedono l’accesso dell’account al
+                  gruppo; inserisci poi il suo ID. Il sistema non accetta inviti
+                  né si iscrive automaticamente.
+                </Text>
               </>
             ) : (
               <>

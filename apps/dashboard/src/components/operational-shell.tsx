@@ -1,64 +1,64 @@
 // Adapted from Astryx 0.6.4 shell-side-nav: AppShell > SideNav + Layout.
-'use client';
+"use client";
 
-import * as stylex from '@stylexjs/stylex';
-import {Banner} from '@astryxdesign/core/Banner';
-import {Button} from '@astryxdesign/core/Button';
-import {Card} from '@astryxdesign/core/Card';
-import {EmptyState} from '@astryxdesign/core/EmptyState';
-import {Icon} from '@astryxdesign/core/Icon';
-import {Section} from '@astryxdesign/core/Section';
-import {HStack, VStack} from '@astryxdesign/core/Stack';
-import {StatusDot} from '@astryxdesign/core/StatusDot';
-import type {StatusDotVariant} from '@astryxdesign/core/StatusDot';
-import {Table, proportional} from '@astryxdesign/core/Table';
-import type {TableColumn} from '@astryxdesign/core/Table';
-import {Heading, Text} from '@astryxdesign/core/Text';
-import {ArrowPathIcon, ShieldCheckIcon} from '@heroicons/react/24/outline';
-import {useReadiness} from '@/hooks/use-readiness';
-import {formatCheckedAt} from '@/lib/locale';
-import type {ConnectionState} from '@/lib/readiness';
+import * as stylex from "@stylexjs/stylex";
+import { Banner } from "@astryxdesign/core/Banner";
+import { Button } from "@astryxdesign/core/Button";
+import { Card } from "@astryxdesign/core/Card";
+import { EmptyState } from "@astryxdesign/core/EmptyState";
+import { Icon } from "@astryxdesign/core/Icon";
+import { Section } from "@astryxdesign/core/Section";
+import { HStack, VStack } from "@astryxdesign/core/Stack";
+import { StatusDot } from "@astryxdesign/core/StatusDot";
+import type { StatusDotVariant } from "@astryxdesign/core/StatusDot";
+import { Table, proportional } from "@astryxdesign/core/Table";
+import type { TableColumn } from "@astryxdesign/core/Table";
+import { Heading, Text } from "@astryxdesign/core/Text";
+import { ArrowPathIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
+import { useReadiness } from "@/hooks/use-readiness";
+import { formatCheckedAt } from "@/lib/locale";
+import type { ConnectionState } from "@/lib/readiness";
 
 const styles = stylex.create({
   hero: {
-    backgroundColor: 'var(--color-background-surface)',
+    backgroundColor: "var(--color-background-surface)",
     backgroundImage:
-      'radial-gradient(ellipse at top right, var(--color-accent-muted), transparent)',
-    borderRadius: 'var(--radius-container)',
+      "radial-gradient(ellipse at top right, var(--color-accent-muted), transparent)",
+    borderRadius: "var(--radius-container)",
   },
-  meta: {fontVariantNumeric: 'tabular-nums'},
+  meta: { fontVariantNumeric: "tabular-nums" },
 });
 
 const CONNECTION: Record<
   ConnectionState,
-  {label: string; variant: StatusDotVariant; detail: string}
+  { label: string; variant: StatusDotVariant; detail: string }
 > = {
   loading: {
-    label: 'Verifica della connessione',
-    variant: 'neutral',
-    detail: 'In attesa del primo aggiornamento sullo stato dei servizi.',
+    label: "Verifica della connessione",
+    variant: "neutral",
+    detail: "In attesa del primo aggiornamento sullo stato dei servizi.",
   },
   ready: {
-    label: 'Connessione verificata',
-    variant: 'success',
+    label: "Connessione verificata",
+    variant: "success",
     detail:
-      'I servizi di base comunicano correttamente con il database, che è aggiornato.',
+      "I servizi di base comunicano correttamente con il database, che è aggiornato.",
   },
   not_ready: {
-    label: 'Connessione da verificare',
-    variant: 'warning',
-    detail: 'Il database non è disponibile oppure richiede un aggiornamento.',
+    label: "Connessione da verificare",
+    variant: "warning",
+    detail: "Il database non è disponibile oppure richiede un aggiornamento.",
   },
   stale: {
-    label: 'Stato non aggiornato',
-    variant: 'warning',
+    label: "Stato non aggiornato",
+    variant: "warning",
     detail:
-      'L’ultimo controllo è troppo vecchio oppure l’orario non è sincronizzato. Lo stato attuale non è confermato.',
+      "L’ultimo controllo è troppo vecchio oppure l’orario non è sincronizzato. Lo stato attuale non è confermato.",
   },
   offline: {
-    label: 'Stato non disponibile',
-    variant: 'error',
-    detail: 'Non è possibile verificare la connessione ai servizi di base.',
+    label: "Stato non disponibile",
+    variant: "error",
+    detail: "Non è possibile verificare la connessione ai servizi di base.",
   },
 };
 
@@ -71,14 +71,14 @@ interface ServiceRow extends Record<string, unknown> {
 
 const serviceColumns: TableColumn<ServiceRow>[] = [
   {
-    key: 'name',
-    header: 'Servizio',
+    key: "name",
+    header: "Servizio",
     width: proportional(2),
     renderCell: (row) => <Text weight="semibold">{row.name}</Text>,
   },
   {
-    key: 'state',
-    header: 'Stato',
+    key: "state",
+    header: "Stato",
     width: proportional(2),
     renderCell: (row) => (
       <HStack gap={2} vAlign="center">
@@ -88,47 +88,48 @@ const serviceColumns: TableColumn<ServiceRow>[] = [
     ),
   },
   {
-    key: 'detail',
-    header: 'Dettagli',
+    key: "detail",
+    header: "Dettagli",
     width: proportional(4),
     renderCell: (row) => <Text color="secondary">{row.detail}</Text>,
   },
 ];
 
 export default function OperationalShell() {
-  const {data, state, isRefreshing, refresh} = useReadiness();
+  const { data, state, isRefreshing, refresh } = useReadiness();
   const connection = CONNECTION[state];
   const services: ServiceRow[] = [
     {
-      name: 'Servizi di base',
+      name: "Servizi di base",
       state: connection.label,
-      detail: 'Verifica della connessione al database e del suo aggiornamento.',
+      detail: "Verifica della connessione al database e del suo aggiornamento.",
       variant: connection.variant,
     },
     {
-      name: 'Telegram',
-      state: 'Non collegato',
-      detail: 'La ricezione dei segnali sarà disponibile in seguito.',
-      variant: 'neutral',
-    },
-    {
-      name: 'Agenti IA',
-      state: 'Non attivi',
-      detail: 'Nessuna analisi o decisione automatica in corso.',
-      variant: 'neutral',
-    },
-    {
-      name: 'Rischio e ordini',
-      state: 'Non attivi',
+      name: "Telegram",
+      state: "Verifica nelle fonti",
       detail:
-        'I controlli del rischio e l’invio degli ordini saranno disponibili in seguito.',
-      variant: 'neutral',
+        "Apri Fonti Telegram per verificare il collegamento e lo stato della lettura.",
+      variant: "neutral",
     },
     {
-      name: 'MetaTrader 5',
-      state: 'Non collegato',
-      detail: 'Nessun terminale o conto di trading collegato.',
-      variant: 'neutral',
+      name: "Agenti IA",
+      state: "Non attivi",
+      detail: "Nessuna analisi o decisione automatica in corso.",
+      variant: "neutral",
+    },
+    {
+      name: "Rischio e ordini",
+      state: "Non attivi",
+      detail:
+        "I controlli del rischio e l’invio degli ordini saranno disponibili in seguito.",
+      variant: "neutral",
+    },
+    {
+      name: "MetaTrader 5",
+      state: "Non collegato",
+      detail: "Nessun terminale o conto di trading collegato.",
+      variant: "neutral",
     },
   ];
 
@@ -178,24 +179,24 @@ export default function OperationalShell() {
           <Text type="supporting" color="secondary" xstyle={styles.meta}>
             {data
               ? `Ultimo aggiornamento: ${formatCheckedAt(data.checked_at)}`
-              : 'Nessun aggiornamento ricevuto.'}{' '}
+              : "Nessun aggiornamento ricevuto."}{" "}
             Aggiornamento automatico ogni 10 secondi.
           </Text>
         </VStack>
       </Section>
 
-      {(state === 'offline' || state === 'not_ready' || state === 'stale') && (
+      {(state === "offline" || state === "not_ready" || state === "stale") && (
         <Banner
-          status={state === 'offline' ? 'error' : 'warning'}
+          status={state === "offline" ? "error" : "warning"}
           title={
-            state === 'not_ready'
-              ? 'I servizi richiedono attenzione'
-              : 'Stato attuale non confermato'
+            state === "not_ready"
+              ? "I servizi richiedono attenzione"
+              : "Stato attuale non confermato"
           }
           description={
-            state === 'not_ready'
-              ? 'La connessione al database o il suo aggiornamento richiedono una verifica. Contatta l’amministratore del sistema.'
-              : 'I dati disponibili non confermano lo stato attuale. Aggiorna lo stato; se il problema persiste, contatta l’amministratore del sistema.'
+            state === "not_ready"
+              ? "La connessione al database o il suo aggiornamento richiedono una verifica. Contatta l’amministratore del sistema."
+              : "I dati disponibili non confermano lo stato attuale. Aggiorna lo stato; se il problema persiste, contatta l’amministratore del sistema."
           }
         />
       )}

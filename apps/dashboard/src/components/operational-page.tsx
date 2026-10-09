@@ -19,6 +19,7 @@ import {
 } from '@/lib/configuration';
 import {formatCheckedAt} from '@/lib/locale';
 import ConfigurationEditor from './configuration-page';
+import {useSession} from './trading-shell';
 export const PAGES: Record<string, {title: string; description: string}> = {
   settings: {
     title: 'Impostazioni',
@@ -58,12 +59,17 @@ export const PAGES: Record<string, {title: string; description: string}> = {
   signals: {
     title: 'Segnali',
     description:
-      'Segnali ricevuti e relativo stato. La ricezione da Telegram non è ancora attiva.',
+      'Segnali strutturati e relativo stato. I messaggi Telegram vengono raccolti separatamente; l’analisi sarà attivata nella prossima fase.',
   },
   sources: {
     title: 'Fonti Telegram',
     description:
-      'Fonti autorizzate registrate nel sistema. Il collegamento a Telegram sarà disponibile nella prossima fase.',
+      'Aggiungi i canali e gruppi da leggere. La fonte viene verificata quando il team collega l’account Telegram. Nessun messaggio può avviare un ordine.',
+  },
+  'telegram-messages': {
+    title: 'Messaggi Telegram',
+    description:
+      'Messaggi ricevuti, revisioni e cancellazioni. Il contenuto è un dato da valutare; analisi e trading restano disattivati.',
   },
   costs: {
     title: 'Costi IA',
@@ -79,9 +85,27 @@ const ACTION: Record<string, string> = {
   SETTING_REVISED: 'Impostazione modificata',
   RISK_CONFIG_REVISED: 'Limiti di rischio modificati',
   AGENT_CONFIG_REVISED: 'Configurazione agente modificata',
+  SOURCE_CONFIG_REVISED: 'Fonte Telegram modificata',
+  TELEGRAM_MESSAGE_NEW: 'Messaggio Telegram registrato',
+  TELEGRAM_MESSAGE_EDIT: 'Messaggio Telegram modificato',
+  TELEGRAM_MESSAGE_DELETE: 'Cancellazione Telegram registrata',
   BOOTSTRAP_DOMAIN_DEFAULTS_CREATED: 'Configurazioni iniziali create',
   BOOTSTRAP_ADMIN_CREATED: 'Amministratore iniziale creato',
   BOOTSTRAP_DEFAULTS_CREATED: 'Impostazioni iniziali create',
+};
+const SOURCE_STATUS: Record<string, string> = {
+  PENDING: 'In attesa del collegamento',
+  ACTIVE: 'Lettura verificata',
+  BACKFILL: 'Recupero in corso',
+  GAP: 'Interruzione da verificare',
+  UNAVAILABLE: 'Fonte non accessibile',
+  FLOOD_WAIT: 'Attesa richiesta da Telegram',
+  DISABLED: 'Disattivata',
+};
+const MESSAGE_EVENTS: Record<string, string> = {
+  NEW: 'Ricevuto',
+  EDIT: 'Modificato',
+  DELETE: 'Cancellato',
 };
 const SERVICES: Record<string, string> = {
   api: 'Accesso e dashboard',
@@ -118,6 +142,7 @@ function column(
   };
 }
 export default function OperationalPage({section}: {section: string}) {
+  const user = useSession();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 10_000);
@@ -173,7 +198,11 @@ export default function OperationalPage({section}: {section: string}) {
       column('name', 'Agente', (r) => (
         <Text weight="semibold">{AGENT_LABELS[String(r.name)]}</Text>
       )),
-      column('enabled', 'Stato', r => status(r.enabled ? 'Configurato, esecuzione disattivata' : 'Disattivato')),
+      column('enabled', 'Stato', (r) =>
+        status(
+          r.enabled ? 'Configurato, esecuzione disattivata' : 'Disattivato'
+        )
+      ),
       column('primary_model_id', 'Modello'),
       column('current_version', 'Versione'),
       column('id', 'Configurazione', (r) => (
@@ -294,9 +323,61 @@ export default function OperationalPage({section}: {section: string}) {
   if (section === 'sources')
     columns = [
       column('name', 'Fonte'),
-      column('enabled', 'Stato', (r) =>
-        status(r.enabled ? 'Autorizzata' : 'Disattivata')
+      column('reference', 'Canale o gruppo'),
+      column('status', 'Lettura', (r) =>
+        status(
+          !r.enabled
+            ? 'Disattivata'
+            : r.status === 'ACTIVE' &&
+                r.last_success_at &&
+                now - Date.parse(String(r.last_success_at)) > 120_000
+              ? 'Da verificare'
+              : SOURCE_STATUS[String(r.status)] || 'Da verificare',
+          r.status === 'ACTIVE' &&
+            r.last_success_at &&
+            now - Date.parse(String(r.last_success_at)) <= 120_000
+            ? 'success'
+            : 'neutral'
+        )
       ),
+      column('message_count', 'Messaggi'),
+      column('last_success_at', 'Ultima verifica', (r) => (
+        <Text>
+          {r.last_success_at
+            ? formatCheckedAt(String(r.last_success_at))
+            : 'Non ancora verificata'}
+        </Text>
+      )),
+      column('id', 'Configurazione', (r) => (
+        <Button
+          label="Apri fonte"
+          size="sm"
+          variant="secondary"
+          onClick={() => setSelected(String(r.id))}
+        />
+      )),
+    ];
+  if (section === 'telegram-messages')
+    columns = [
+      column('source_name', 'Fonte'),
+      column('message_id', 'Messaggio'),
+      column('event_kind', 'Evento', (r) =>
+        status(MESSAGE_EVENTS[String(r.event_kind)] || 'Da verificare')
+      ),
+      column('version', 'Versione'),
+      column('preview', 'Contenuto', (r) => (
+        <Text>
+          {r.event_kind === 'DELETE'
+            ? 'Messaggio cancellato'
+            : r.preview ? String(r.preview) :
+              (r.body_available
+                ? 'Messaggio senza testo'
+                : 'Contenuto non più conservato')}
+        </Text>
+      )),
+      column('observed_at', 'Data', (r) => (
+        <Text>{formatCheckedAt(String(r.observed_at))}</Text>
+      )),
     ];
   if (section === 'costs')
     columns = [
@@ -358,6 +439,38 @@ export default function OperationalPage({section}: {section: string}) {
         />
       )}
       {busy && <Text role="status">Caricamento dei dati…</Text>}
+      {section === 'sources' && user.role === 'ADMIN' && (
+        <Button
+          label="Aggiungi fonte"
+          variant="secondary"
+          onClick={() => setSelected('__new')}
+        />
+      )}
+      {data && section === 'sources' && selected && (
+        <ConfigurationEditor
+          key={
+            selected === '__new'
+              ? 'new-source'
+              : `${selected}:${data.rows.find((r) => r.id === selected)?.version}`
+          }
+          kind="source"
+          row={
+            selected === '__new'
+              ? {version: 0, name: '', reference: '', enabled: true}
+              : data.rows.find((r) => r.id === selected) || {
+                  version: 0,
+                  name: '',
+                  reference: '',
+                  enabled: true,
+                }
+          }
+          onSaved={() => {
+            setSelected(null);
+            setSaved(true);
+            void load();
+          }}
+        />
+      )}
       {data &&
         section !== 'risk' &&
         (data.rows.length ? (

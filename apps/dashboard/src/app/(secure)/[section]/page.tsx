@@ -17,6 +17,7 @@ export default async function Page({
       'positions',
       'signals',
       'sources',
+      'telegram-messages',
       'costs',
     ].includes(section)
   )

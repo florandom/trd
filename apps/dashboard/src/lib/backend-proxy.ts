@@ -1,7 +1,7 @@
 // Fixed, allowlisted dashboard transport. Never relay arbitrary hosts, redirects or headers.
 export function allowedRoute(path: string, method: string): boolean {
   if (method === 'GET')
-    return /^(auth\/(csrf|me)|ops\/(settings|agents|risk|models|audit|status|positions|orders|signals|sources|costs)(\/\b[0-9a-f-]{36})?)$/.test(
+    return /^(auth\/(csrf|me)|ops\/(settings|agents|risk|models|audit|status|positions|orders|signals|sources|costs|telegram-messages)(\/\b[0-9a-f-]{36})?)$/.test(
       path
     );
   return (
