@@ -16,6 +16,7 @@ import {
   STATUS,
   SETTING_LABELS,
   displaySetting,
+  analysisReasons,
 } from '@/lib/configuration';
 import {formatCheckedAt} from '@/lib/locale';
 import ConfigurationEditor from './configuration-page';
@@ -34,7 +35,7 @@ export const PAGES: Record<string, {title: string; description: string}> = {
   agents: {
     title: 'Agenti IA',
     description:
-      'Consulta e prepara le configurazioni dei sei agenti. Nessun agente sta analizzando segnali.',
+      'Configura l’analisi con il simulatore locale. I fornitori esterni e la revisione delle posizioni restano disabilitati.',
   },
   models: {
     title: 'Registro modelli',
@@ -59,7 +60,7 @@ export const PAGES: Record<string, {title: string; description: string}> = {
   signals: {
     title: 'Segnali',
     description:
-      'Segnali strutturati e relativo stato. I messaggi Telegram vengono raccolti separatamente; l’analisi sarà attivata nella prossima fase.',
+      'Proposte strutturate con esito e versioni verificabili. La valutazione consultiva non autorizza ordini.',
   },
   sources: {
     title: 'Fonti Telegram',
@@ -69,7 +70,11 @@ export const PAGES: Record<string, {title: string; description: string}> = {
   'telegram-messages': {
     title: 'Messaggi Telegram',
     description:
-      'Messaggi ricevuti, revisioni e cancellazioni. Il contenuto è un dato da valutare; analisi e trading restano disattivati.',
+      'Messaggi ricevuti, revisioni e cancellazioni. Consulta gli esiti nella pagina Analisi messaggi.',
+  },
+  analyses: {
+    title: 'Analisi messaggi',
+    description: 'Esiti della classificazione locale, motivi di arresto e proposte. Il simulatore non osserva il mercato e non autorizza ordini.',
   },
   costs: {
     title: 'Costi IA',
@@ -89,6 +94,7 @@ const ACTION: Record<string, string> = {
   TELEGRAM_MESSAGE_NEW: 'Messaggio Telegram registrato',
   TELEGRAM_MESSAGE_EDIT: 'Messaggio Telegram modificato',
   TELEGRAM_MESSAGE_DELETE: 'Cancellazione Telegram registrata',
+  MESSAGE_ANALYSIS_COMPLETED: 'Analisi del messaggio registrata',
   BOOTSTRAP_DOMAIN_DEFAULTS_CREATED: 'Configurazioni iniziali create',
   BOOTSTRAP_ADMIN_CREATED: 'Amministratore iniziale creato',
   BOOTSTRAP_DEFAULTS_CREATED: 'Impostazioni iniziali create',
@@ -200,7 +206,7 @@ export default function OperationalPage({section}: {section: string}) {
       )),
       column('enabled', 'Stato', (r) =>
         status(
-          r.enabled ? 'Configurato, esecuzione disattivata' : 'Disattivato'
+          r.enabled ? 'Analisi locale attivata' : 'Disattivato'
         )
       ),
       column('primary_model_id', 'Modello'),
@@ -213,6 +219,17 @@ export default function OperationalPage({section}: {section: string}) {
           onClick={() => setSelected(String(r.id))}
         />
       )),
+    ];
+  if (section === 'analyses')
+    columns = [
+      column('created_at', 'Data', (r) => <Text>{formatCheckedAt(String(r.created_at))}</Text>),
+      column('source_name', 'Fonte'),
+      column('message_version', 'Revisione'),
+      column('outcome', 'Esito', (r) => status(translated(r.outcome))),
+      column('reason_codes', 'Motivi', (r) => <Text>{analysisReasons(r.reason_codes)}</Text>),
+      column('signal_id', 'Proposta', (r) => r.signal_id
+        ? <Link href={`/signals/${String(r.signal_id)}`}>Apri dettaglio</Link>
+        : <Text>Nessuna proposta</Text>),
     ];
   if (section === 'models')
     columns = [
@@ -232,6 +249,10 @@ export default function OperationalPage({section}: {section: string}) {
       column('input_price_per_million', 'Costo input (USD/milione)'),
       column('output_price_per_million', 'Costo output (USD/milione)'),
       column('pricing_version', 'Versione prezzi'),
+      column('budget_state', 'Prenotazione', (r) => <Text>{
+        r.budget_state === 'SETTLED' ? 'Consumo registrato' : 'Conservata per verifica'
+      }</Text>),
+      column('reserved_usd', 'Importo prenotato (USD)'),
     ];
   if (section === 'settings')
     columns = [
@@ -384,11 +405,19 @@ export default function OperationalPage({section}: {section: string}) {
       column('created_at', 'Data', (r) => (
         <Text>{formatCheckedAt(String(r.created_at))}</Text>
       )),
-      column('input_tokens', 'Token input'),
-      column('output_tokens', 'Token output'),
-      column('estimated_cost_usd', 'Costo stimato (USD)'),
+      column('input_tokens', 'Token', (r) => (
+        <VStack gap={1}>
+          <Text>{String(r.input_tokens)} in ingresso</Text>
+          <Text>{String(r.output_tokens)} in uscita</Text>
+        </VStack>
+      )),
+      column('estimated_cost_usd', 'Stimato (USD)'),
+      column('reserved_usd', 'Prenotato (USD)'),
       column('usage_known', 'Consumo', (r) => (
-        <Text>{r.usage_known ? 'Confermato' : 'Non confermato'}</Text>
+        <VStack gap={1}>
+          <Text>{r.usage_known ? 'Confermato' : 'Non confermato'}</Text>
+          <Text color="secondary">{r.budget_state === 'SETTLED' ? 'Consumo registrato' : 'Prenotazione conservata'}</Text>
+        </VStack>
       )),
       column('pricing_version', 'Versione prezzi'),
     ];

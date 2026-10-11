@@ -1,8 +1,8 @@
 # TRD Guida operativa per il cliente
 
-Aggiornamento del 9 ottobre 2026 | Versione fase 4 | Ambiente locale di simulazione
+Aggiornamento del 11 ottobre 2026 | Versione fase 5 | Ambiente locale di simulazione
 
-TRD mette a disposizione un centro di controllo per consultare lo stato del sistema, preparare le configurazioni e scegliere le fonti Telegram. L’accesso e la gestione delle fonti sono utilizzabili nella dashboard. La raccolta dei messaggi richiede prima che il team colleghi un account Telegram. L’analisi tramite intelligenza artificiale e l’invio di ordini al broker non sono ancora attivi.
+TRD mette a disposizione un centro di controllo per consultare lo stato del sistema, preparare le configurazioni e scegliere le fonti Telegram. È disponibile anche l’analisi consultiva con un simulatore locale: riconosce un formato preciso, registra gli esiti e spiega perché una proposta si ferma. La raccolta reale richiede prima che il team colleghi un account Telegram. I fornitori IA esterni e l’invio di ordini al broker restano disabilitati.
 
 Questa guida descrive l’utilizzo disponibile oggi, i controlli da verificare e le azioni da richiedere al team in caso di problemi. Viene aggiornata insieme alle funzionalità del prodotto.
 
@@ -16,7 +16,9 @@ Questa guida descrive l’utilizzo disponibile oggi, i controlli da verificare e
 | Lettura dei messaggi | Implementata e collaudata con dati di prova; richiede credenziali e account Telegram collegato |
 | Messaggi Telegram | Consultazione di un’anteprima del testo e dell’evento più recente, con numero di versione |
 | Configurazioni e registro attività | Modifiche confermate e registrate; limiti di rischio modificabili soltanto in senso più restrittivo |
-| Agenti IA e broker | Inattivi; le pagine consentono di preparare o consultare le configurazioni |
+| Analisi messaggi | Classificazione locale, motivi di arresto e collegamento alle proposte; collaudata con dati di prova |
+| Agenti IA | Attivazione confermata del simulatore locale; configurazioni inizialmente disattivate |
+| IA esterna e broker | Disabilitati; richiedono le rispettive verifiche successive |
 
 ## Accesso e ruoli
 
@@ -63,7 +65,19 @@ La ricezione ripetuta dello stesso evento non aggiunge una nuova versione. Una m
 
 La raccolta viene verificata periodicamente; l’impostazione iniziale è ogni trenta secondi, ma la durata dipende dalle fonti e dalle risposte di Telegram. Dopo una pausa il recupero copre inizialmente una finestra massima di ventiquattro ore. Le revisioni o cancellazioni molto vecchie e gli eventi avvenuti e scomparsi durante un’interruzione possono non essere recuperabili. Un’interruzione oltre questa finestra viene resa visibile.
 
-I messaggi sono dati da valutare. Oggi la raccolta non crea segnali di trading già interpretati, valutazioni IA o ordini al broker. La pagina Segnali riguarderà questi risultati quando saranno implementate le fasi successive.
+I messaggi sono dati da valutare. La pagina Analisi messaggi mostra l’esito della classificazione e i motivi di arresto. Le proposte riconosciute compaiono anche in Segnali, con le versioni e le valutazioni consultive. Nessun messaggio o risultato del simulatore autorizza un ordine.
+
+## Consultare e configurare l’analisi locale
+
+In Analisi messaggi seleziona Aggiorna dati per leggere gli ultimi esiti. Ignorato indica che non è stato riconosciuto un segnale; Richiede revisione indica un formato ambiguo, una modifica, una risposta o una configurazione incompleta; Scaduto indica un messaggio troppo vecchio. In attesa indica una proposta consultiva che non dispone ancora di una verifica del rischio e di dati di mercato verificati.
+
+Il riconoscimento iniziale richiede un solo strumento Forex supportato, direzione, prezzo di ingresso, stop loss e take profit. Il formato deve essere completo e preciso: intervalli di prezzo, più obiettivi, suffissi dello strumento o istruzioni aggiunte richiedono revisione. Il sistema non indovina prezzi o strumenti. La finestra iniziale dell’analisi è di quindici minuti dalla pubblicazione, distinta dal recupero della cronologia Telegram.
+
+L’amministratore può aprire Agenti IA e attivare Analisi locale per Classificazione dei segnali, Interpretazione dei segnali, Analisi di mercato e Valutazione delle decisioni. Ogni attivazione passa da Rivedi modifica e Conferma e salva; il riepilogo mostra anche la nuova versione delle istruzioni. Gli agenti necessari devono essere tutti configurati. La Verifica critica può essere aggiunta, mentre la Revisione delle posizioni resta indisponibile. Il lettore può consultare le configurazioni senza modificarle.
+
+Il simulatore restituisce attesa perché non osserva quotazioni o conti reali. Apri dettaglio permette di consultare prezzi della proposta, stato e tentativi degli agenti, con modello e versione. I costi del simulatore sono zero; la pagina Costi IA distingue consumi registrati e prenotazioni conservate quando un tentativo è rimasto senza esito confermato. Un riavvio non reinvia automaticamente una richiesta dall’esito sconosciuto.
+
+Modifiche e cancellazioni conservano lo storico e fermano le proposte non inviate. Le risposte a un messaggio richiedono revisione: non producono una seconda proposta di apertura. Disattivare una fonte impedisce nuove elaborazioni autorizzate da quella fonte. Una configurazione modificata durante l’analisi richiede una nuova verifica.
 
 ## Modificare le configurazioni
 
@@ -84,3 +98,5 @@ Prima di utilizzare la raccolta reale, il team deve collegare l’account Telegr
 ## Cronologia degli aggiornamenti
 
 9 ottobre 2026 — Prima guida cliente mantenuta nel progetto. Descrive accesso, configurazioni confermate, gestione delle fonti dalla dashboard e raccolta Telegram della fase 4. Il collegamento a un account reale è ancora da predisporre.
+
+11 ottobre 2026 — Aggiunta l’analisi consultiva della fase 5: esiti dei messaggi, proposte, attivazione confermata del simulatore, revisione delle modifiche e visibilità dei tentativi e delle prenotazioni. IA esterna e trading restano disabilitati.

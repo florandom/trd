@@ -1,8 +1,8 @@
 # TRD Preparazione pratica per il team di sviluppo
 
-Aggiornamento del 9 ottobre 2026 | Versione fase 4 | Installazione locale e predisposizione delle integrazioni
+Aggiornamento del 11 ottobre 2026 | Versione fase 5 | Installazione locale e predisposizione delle integrazioni
 
-Questa guida indica cosa predisporre per usare TRD con un cliente: ambiente, account, variabili, chiavi e verifiche. Accesso, dashboard e configurazioni sono implementati. Il servizio Telegram è implementato e verificato con test automatici e dati simulati; per il collegamento reale mancano ancora le credenziali applicative e l’accesso a un account Telegram. IA esterna, motore di rischio ed esecuzione MT5 restano nelle fasi successive.
+Questa guida indica cosa predisporre per usare TRD con un cliente: ambiente, account, variabili, chiavi e verifiche. Accesso, dashboard, raccolta Telegram e analisi consultiva locale sono implementati. L’analisi usa un parser rigoroso e un simulatore, con esiti e tentativi registrati nel database. Per Telegram reale mancano ancora credenziali e accesso all’account. Il contratto OpenAI è collaudato soltanto con trasporto simulato; IA esterna, motore di rischio ed esecuzione MT5 richiedono ancora i rispettivi gate.
 
 Le configurazioni future elencate qui preparano il lavoro del team. La presenza di una chiave non dimostra che l’integrazione sia implementata, collegata o autorizzata. Non inserire credenziali reali in questa guida, nei ticket, nei log o negli esempi condivisi.
 
@@ -13,7 +13,7 @@ Le configurazioni future elencate qui preparano il lavoro del team. La presenza 
 | Utenti TRD | Amministratore iniziale e utenti nominativi ADMIN o VIEWER | Già ora per la dashboard |
 | PostgreSQL | Istanza locale e credenziali distinte per sei ruoli applicativi e operatore | Già ora; create dal setup locale |
 | Telegram lettura | Account umano autorizzato dal cliente, accesso alle fonti, API ID e API hash dell’applicazione | Prima di attivare la raccolta reale |
-| Provider IA | Account API del provider scelto, progetto dedicato e limiti di spesa | Prima della fase con adapter esterno; oggi mock locale |
+| Provider IA | Account API, progetto dedicato, modello e prezzi verificati, limiti di spesa | Prima del gate esterno; l’analisi locale non richiede chiavi |
 | Bot Telegram avvisi | Bot e destinazione di notifica autorizzata | Fase notifiche; separato dall’account di lettura |
 | Broker e MT5 | Conto demo, server e login esatti, terminale MT5 e utente Windows dedicato | Fase esecuzione e collaudo demo |
 | Server Windows | Accesso amministrativo, account di servizio, storage e backup protetti | Prima del collaudo sul server di destinazione |
@@ -73,7 +73,7 @@ Il team o il titolare dell’account deve predisporre un’applicazione nella se
 | TELEGRAM_BACKFILL_MAX_AGE_SECONDS | 86400; finestra di recupero, fra un minuto e sette giorni |
 | TELEGRAM_HISTORY_BATCH_SIZE | 100; da 1 a 100 messaggi per richiesta di cronologia |
 | TELEGRAM_REQUEST_TIMEOUT_SECONDS | 20; da 1 a 30 secondi per operazione di rete |
-| TELEGRAM_SIGNAL_MAX_AGE_SECONDS | 900; filtro preliminare per i futuri job di analisi, non autorizzazione al trading |
+| TELEGRAM_SIGNAL_MAX_AGE_SECONDS | 900; filtro preliminare dei job di analisi, non autorizzazione al trading |
 
 Il numero di telefono, il codice di accesso e l’eventuale password Telegram a due passaggi sono richiesti senza eco dalla procedura locale. Non salvarli in variabili del servizio e non raccoglierli in un modulo della dashboard. La sessione viene cifrata con AES GCM e legata a schema, ambiente, account, identità del collector e identificativo della chiave. La sessione Telethon in memoria non produce un file SQLite in chiaro. [Sessioni Telethon](https://docs.telethon.dev/en/stable/concepts/sessions.html)
 
@@ -94,13 +94,13 @@ Il collector conserva nello stesso file cifrato anche gli aggiornamenti interni 
 
 ## Verifiche prima della consegna al cliente
 
-1. Verificare migrazione 0004_telegram e servizi locali avviati con i propri ruoli.
+1. Verificare migrazione 0005_analysis e servizi locali avviati con i propri ruoli.
 2. Provare accesso, uscita e comportamento VIEWER; nessun lettore deve salvare configurazioni.
 3. Inserire una fonte autorizzata dalla dashboard, verificare conferma e voce nel Registro attività.
 4. Collegare l’account reale e verificare lo stato Lettura verificata con un’osservazione recente.
 5. Su una fonte di prova autorizzata, verificare nuovo messaggio, modifica, risposta e cancellazione senza duplicati.
 6. Interrompere e riavviare il collector; verificare recupero delle revisioni nella finestra e segnalazione dei periodi non coperti.
-7. Verificare che il cliente veda messaggi e stato delle fonti, mentre IA, automazione e ordini restano inattivi.
+7. Verificare Analisi messaggi e il dettaglio delle proposte con agenti locali configurati; mantenere IA esterna, automazione e ordini disabilitati.
 
 Il collector usa una lease PostgreSQL per un solo proprietario attivo dell’account nello stesso database. Ogni scrittura verifica proprietario, generazione, scadenza, ambiente e versione della fonte. Nessuna transazione resta aperta durante una richiesta Telegram. Le limitazioni imposte da Telegram vengono rispettate con un’attesa persistita; perdita del database o della lease impedisce di avanzare il cursore.
 
@@ -108,9 +108,37 @@ La cronologia viene recuperata a lotti in ordine, con controlli sovrapposti e ve
 
 I test automatici usano PostgreSQL 17 e database casuali trd_test_* separati dall’istanza applicativa. I test di protocollo e UI non sostituiscono il collaudo su Telegram reale. Non utilizzare un server PostgreSQL di produzione come TEST_ADMIN_DATABASE_URL.
 
+## Preparare e collaudare l’analisi locale
+
+L’aggiornamento aggiunge la migrazione 0005_analysis. Il worker AI usa il solo ruolo trd_ai e consuma i job Telegram già persistiti. Analisi, proposta, transizioni, audit, outbox e completamento del job vengono confermati atomicamente. Le chiamate al simulatore restano fuori dalle transazioni. Ogni tentativo verifica lease, generazione, fonte, revisione del messaggio e configurazione; un risultato tardivo non può sostituire i dati correnti.
+
+Il bootstrap aggiunge istruzioni immutabili di versione 2 per i cinque agenti implementati, conservando le versioni precedenti e le configurazioni esistenti. Gli agenti non vengono attivati automaticamente. Dalla dashboard ADMIN attivare i quattro agenti di classificazione, interpretazione, analisi e decisione, scegliendo il simulatore locale e confermando la revisione. La conferma seleziona le istruzioni di versione 2. L’agente critico viene eseguito se attivato; se obbligatorio dal server, la sua indisponibilità ferma il percorso. La revisione delle posizioni resta disabilitata.
+
+Il parser accetta un solo messaggio completo nel formato BUY oppure SELL, simbolo, ENTRY, prezzo, SL, prezzo, TP, prezzo. Un esempio di prova è BUY EURUSD ENTRY 1.10000 SL 1.09500 TP 1.11000. Sono riconosciuti EURUSD, GBPUSD, USDJPY, USDCHF, AUDUSD, USDCAD e NZDUSD, senza risoluzione di suffissi o mapping al broker. Questo elenco delimita il parser e non approva la negoziazione degli strumenti. I prezzi usano Decimal; controlli economici, quotazioni, conversioni e autorizzazioni per fonte appartengono al futuro gateway del rischio.
+
+| Variabile | Comportamento implementato |
+| --- | --- |
+| AI_PROVIDER_MODE | Solo mock; altri valori rifiutati all’avvio |
+| AI_SIGNAL_MAX_AGE_SECONDS | 900; da 30 a 3600 secondi dalla pubblicazione, ricontrollata alla conclusione |
+| AI_JOB_LEASE_SECONDS | 180; da 10 a 300 secondi, oltre il timeout totale più cinque secondi |
+| AI_HARD_TIMEOUT_SECONDS | 30; da 1 a 120 secondi per l’intero percorso, incluse le alternative |
+| AI_HARD_MAX_OUTPUT_TOKENS | 4096; limite fra 1 e 4096, ristretto dalla configurazione dell’agente |
+| AI_HARD_DAILY_BUDGET_USD | 0.00; limite globale giornaliero in USD |
+| AI_HARD_MONTHLY_BUDGET_USD | 0.00; limite globale mensile in USD |
+| AI_HARD_DAILY_BUDGET_PER_AGENT_USD | 0.00; nuovo limite giornaliero per singolo agente |
+| AI_HARD_MAX_COST_PER_REQUEST_USD | 0.00; limite per tentativo, ristretto dal limite dell’agente |
+| ENABLE_CRITIC_AGENT | false; true rende obbligatoria la verifica critica con agente configurato |
+| ENABLE_ADAPTIVE_MEMORY | false; true resta rifiutato perché la funzione è futura |
+
+Solo il processo AI riceve questi campi. Aggiungere i tre nuovi nomi al file .env esistente se si desidera personalizzarli; altrimenti valgono i default. Dopo una modifica ricreare worker con Compose oppure riavviare il processo host. Conservare i budget a zero per l’installazione locale: il simulatore è gratuito. I valori di spesa richiedono stringhe decimali finite, mai float. Le finestre contabili sono UTC; la dashboard visualizza gli orari in Europe/Rome.
+
+La prenotazione preventiva serializza i limiti globali e per agente in PostgreSQL. Un esito senza consumo confermato conserva l’importo anche dopo cambio di giorno o mese. Un riavvio non ripete un tentativo ancora aperto. Costi IA rende visibili anche le prenotazioni interrotte prima della registrazione del consumo. Per ogni agente sono ammessi al massimo tre tentativi per job, comprese ripartenze e modelli alternativi. Non esiste ancora una procedura operativa per liberare un importo dall’esito sconosciuto: va riconciliato prima di qualsiasi futura attivazione a pagamento.
+
+I test verificano parser, injection, rifiuti, output incompleti, consumi invalidi, spese concorrenti, scadenze, modifiche e permessi su PostgreSQL 17. Per l’uso reale provare in una fonte Telegram autorizzata anche risposte, revisioni e riavvio. Gli esiti del simulatore non validano un modello esterno né certificano una strategia di trading.
+
 ## Preparare le integrazioni delle fasi successive
 
-Per l’IA predisporre un account API con progetto e limiti di spesa dedicati. OPENAI_API_KEY è prevista per il primo adapter esterno. ANTHROPIC_API_KEY, GOOGLE_AI_API_KEY, MOONSHOT_API_KEY e TYPESAFE_API_KEY sono campi riservati e facoltativi; non sono necessari alla fase attuale. AI_PROVIDER_MODE resta mock, e AI_HARD_DAILY_BUDGET_USD, AI_HARD_MONTHLY_BUDGET_USD e AI_HARD_MAX_COST_PER_REQUEST_USD restano 0.00. AI_HARD_MAX_OUTPUT_TOKENS e AI_HARD_TIMEOUT_SECONDS preparano i limiti di richiesta. Registro modelli, capacità e prezzi devono essere verificati nella fase dell’adapter, prima delle chiamate reali. ENABLE_CRITIC_AGENT e ENABLE_ADAPTIVE_MEMORY restano false.
+Per l’IA esterna predisporre un account API con progetto e limiti di spesa dedicati. OPENAI_API_KEY è prevista per il primo adapter esterno; una chiave compilata non attiva chiamate. Il contratto Responses usa schema rigoroso, store=false, nessuno strumento e un’origine fissa; oggi accetta soltanto il trasporto di test. Prima di abilitare la rete servono accesso effettivo al modello, manifesti e prezzi attuali verificati, un limite dimostrabile ai token di ingresso, prove di fatturazione e risultati valutati su fixture approvate. La selezione di modelli esterni dalla dashboard è rifiutata. ANTHROPIC_API_KEY, GOOGLE_AI_API_KEY, MOONSHOT_API_KEY e TYPESAFE_API_KEY restano riservati e facoltativi. [Output strutturati OpenAI](https://developers.openai.com/api/docs/guides/structured-outputs)
 
 Per gli avvisi predisporre successivamente un bot tramite BotFather e una destinazione autorizzata. ALERT_TELEGRAM_BOT_TOKEN, ALERT_TELEGRAM_CHAT_ID e ALERT_COOLDOWN_SECONDS riguardano il futuro servizio notifiche; il bot non sostituisce il collector e la fase attuale non invia messaggi. [Creazione di un bot Telegram](https://core.telegram.org/bots#how-do-i-create-a-bot)
 
@@ -135,3 +163,5 @@ Per rigenerare eseguire python infra/scripts/build_guides.py con un interprete c
 ## Cronologia degli aggiornamenti
 
 9 ottobre 2026 — Prima guida pratica mantenuta nel progetto. Include ruoli e setup esistenti, gestione delle fonti dalla dashboard, accesso locale Telegram, cifratura, recupero a lotti e preparazione delle integrazioni ancora inattive.
+
+11 ottobre 2026 — Aggiunta la preparazione della fase 5 locale: migrazione, parser, istruzioni versionate, attivazioni confermate, limiti del worker, budget e recupero conservativo. Distinti il contratto OpenAI verificato offline e i gate ancora richiesti per rete, rischio e MT5.

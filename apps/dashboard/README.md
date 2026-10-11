@@ -54,3 +54,13 @@ creation via public link, confirmation, rename/disable, audit, reader access, es
 text, stale observations and mobile navigation/forms. The overview refers users to
 the source status rather than claiming an unobserved Telegram connection. See
 [Phase 4 evidence](../../docs/PHASE_4_VALIDATION.md).
+
+## Phase 5 local analysis
+
+The existing operational table frame includes Analisi messaggi, with Italian
+outcomes/reasons and proposal links. Signal detail adds advisory results and agent
+attempts. Confirmed ADMIN changes may enable implemented mock agents and explicitly
+select reviewed prompt version 2; VIEWER controls remain read-only. Position review,
+paid models, automation and trading are unavailable. Cost rows include unresolved
+reservations after interruption. The same-origin allowlist exposes only the new
+authenticated analyses collection. [Analysis contract](../../docs/ANALYSIS.md).

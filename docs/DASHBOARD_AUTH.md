@@ -83,19 +83,20 @@ The confirmed HTTP routes expose these capabilities only:
   hard-bound or trading-mode editor is exposed. Pending commands, held/uncertain
   reservations or open positions reject the change until the risk gateway exists.
   An accepted change pauses enrolled accounts and advances their safety epoch.
-- Agents: prepare immutable configurations with enabled=false, compatible enabled
+- Agents in Phase 3: prepare immutable configurations with enabled=false, compatible enabled
   mock models, at most two unique fallback models, 1–120 second timeout, at most
   4096 output tokens, and zero request cost. Prompt manifests stay operator-owned.
 
 Risk fingerprints preserve the domain contract's canonical representation. Model
 manifests and prices remain operator-reviewed and immutable; the registry UI is
-read-only. Only the offline mock is seeded. Provider integration and agent activation
-belong to Phase 5. The API has no financial-record write grants or broker keys. Its
+read-only. Only the offline mock is seeded. Phase 5 now permits confirmed activation
+of the five implemented offline agents with reviewed prompt version 2. Position review
+and external models remain unavailable. The API has no financial-record write grants or broker keys. Its
 explicit unavailable-trading handler never creates a command or approval.
 
 ## Operational pages and lifecycle
 
-Overview, positions, signals/detail, sources, agents, model registry, risk, AI costs,
+Overview, positions, signals/detail, message analysis, sources, agents, model registry, risk, AI costs,
 settings, audit and status use stored, redacted projections. Operational lists are
 paged in bounded batches. Money is represented by decimal strings; percentage inputs
 move the decimal point without floating-point arithmetic. Dates use it-IT and

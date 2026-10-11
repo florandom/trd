@@ -257,6 +257,7 @@ class DashboardService:
             "signals": ("api_signals", "created_at DESC,id"),
             "sources": ("dashboard_sources", "name,id"),
             "telegram-messages": ("dashboard_telegram_messages", "observed_at DESC,id"),
+            "analyses": ("dashboard_analyses", "created_at DESC,id"),
             "costs": ("dashboard_costs", "created_at DESC,id"),
         }
         if collection not in views:
@@ -307,7 +308,32 @@ class DashboardService:
                 .mappings()
                 .all()
             )
-        return {"signal": dict(row), "versions": [dict(v) for v in versions]}
+            analysis = (
+                connection.execute(
+                    text("""SELECT * FROM public.dashboard_analyses
+                WHERE environment_id=:environment AND signal_id=:id ORDER BY created_at DESC
+                LIMIT 1"""),
+                    self.parameters(id=identifier),
+                )
+                .mappings()
+                .first()
+            )
+            runs = (
+                connection.execute(
+                    text("""SELECT * FROM public.dashboard_agent_runs
+                WHERE environment_id=:environment AND trace_id=:trace ORDER BY created_at,id
+                LIMIT 12"""),
+                    self.parameters(trace=row["trace_id"]),
+                )
+                .mappings()
+                .all()
+            )
+        return {
+            "signal": dict(row),
+            "versions": [dict(v) for v in versions],
+            "analysis": dict(analysis) if analysis else None,
+            "runs": [dict(run) for run in runs],
+        }
 
     def validate_change(self, payload: dict[str, Any]) -> dict:
         kind, target, value = payload["kind"], payload["target"], payload["value"]
@@ -335,7 +361,14 @@ class DashboardService:
                 payload["value"] = SourceConfiguration.model_validate(value).model_dump(mode="json")
             elif kind == "agent":
                 config = AgentConfiguration.model_validate(value)
-                if config.enabled or config.max_cost_usd != 0 or config.max_output_tokens > 4096:
+                agents = self.rows("agents")["rows"]
+                agent = next(row for row in agents if str(row["id"]) == target)
+                if (
+                    (config.enabled and agent["name"] == "POSITION_REVIEW_AGENT")
+                    or (config.enabled and config.prompt_version != 2)
+                    or config.max_cost_usd != 0
+                    or config.max_output_tokens > 4096
+                ):
                     raise ValueError("capability unavailable")
                 models = self.rows("models")["rows"]
                 for identifier in (config.primary_model_id, *config.fallback_model_ids):

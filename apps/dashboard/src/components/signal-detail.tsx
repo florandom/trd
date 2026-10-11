@@ -6,7 +6,7 @@ import {Heading, Text} from '@astryxdesign/core/Text';
 import {Banner} from '@astryxdesign/core/Banner';
 import {Table, proportional, type TableColumn} from '@astryxdesign/core/Table';
 import {api, type Row} from '@/lib/dashboard-api';
-import {STATUS} from '@/lib/configuration';
+import {STATUS, AGENT_LABELS, analysisReasons} from '@/lib/configuration';
 import {formatCheckedAt} from '@/lib/locale';
 function proposal(row: Row): Record<string, unknown> {
   return row.proposal &&
@@ -50,13 +50,17 @@ export default function SignalDetail({id}: {id: string}) {
   const [state, setState] = useState('');
   const [versions, setVersions] = useState<Row[] | null>(null);
   const [error, setError] = useState('');
+  const [analysis, setAnalysis] = useState<Row | null>(null);
+  const [runs, setRuns] = useState<Row[]>([]);
   useEffect(() => {
     let active = true;
-    void api<{versions: Row[]; signal: Row}>(`ops/signals/${id}`)
+    void api<{versions: Row[]; signal: Row; analysis: Row | null; runs: Row[]}>(`ops/signals/${id}`)
       .then((value) => {
         if (active) {
           setVersions(value.versions);
           setState(STATUS[String(value.signal.state)] || 'Stato da verificare');
+          setAnalysis(value.analysis);
+          setRuns(value.runs);
         }
       })
       .catch((e) => {
@@ -76,6 +80,8 @@ export default function SignalDetail({id}: {id: string}) {
         confermano l’esecuzione di un ordine.
       </Text>
       {error && <Banner status="error" title={error} />}
+      {analysis && <Banner status="info" title="Esito dell’analisi consultiva"
+        description={analysisReasons(analysis.reason_codes)} />}
       {versions ? (
         <Table
           data={versions}
@@ -87,6 +93,19 @@ export default function SignalDetail({id}: {id: string}) {
       ) : (
         !error && <Text role="status">Caricamento del segnale…</Text>
       )}
+      {!!runs.length && <>
+        <Heading level={2}>Valutazioni degli agenti</Heading>
+        <Text color="secondary">Tentativi registrati con versione della configurazione e del modello.
+          Il consumo del simulatore è zero; nessuna richiesta è stata inviata a un fornitore esterno.</Text>
+        <Table data={runs} idKey="id" aria-label="Valutazioni consultive degli agenti" textOverflow="wrap"
+          columns={[
+            {key: 'agent_name', header: 'Agente', width: proportional(2), renderCell: (r) => <Text>{AGENT_LABELS[String(r.agent_name)] ?? 'Agente da verificare'}</Text>},
+            {key: 'status', header: 'Esito', width: proportional(2), renderCell: (r) => <Text>{STATUS[String(r.status)] ?? 'Da verificare'}</Text>},
+            {key: 'model_id', header: 'Modello', width: proportional(1)},
+            {key: 'config_version', header: 'Versione', width: proportional(1)},
+            {key: 'attempt', header: 'Tentativo', width: proportional(1)},
+          ]} />
+      </>}
     </VStack>
   );
 }

@@ -1,5 +1,9 @@
 # Phase 4 Telegram collection contract
 
+Update, 11 October 2026: Phase 5 consumes the persisted analysis handoffs through
+an independent offline advisory worker. The collection/enrollment contract below
+is preserved; external AI and trading remain disabled. See [the analysis contract](ANALYSIS.md).
+
 Implemented 9 October 2026. The collector reads only dashboard-authorized sources.
 The local installation has no enrolled real account and remains disabled. This
 contract describes the adapter and its limits, not real-network acceptance.

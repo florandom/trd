@@ -114,8 +114,8 @@ export default function OperationalShell() {
     },
     {
       name: "Agenti IA",
-      state: "Non attivi",
-      detail: "Nessuna analisi o decisione automatica in corso.",
+      state: "Verifica negli agenti",
+      detail: "Analisi consultiva con simulatore locale, configurabile nella pagina Agenti IA.",
       variant: "neutral",
     },
     {
@@ -245,7 +245,7 @@ export default function OperationalShell() {
           isCompact
           headingLevel={2}
           title="Attività di trading non ancora disponibile"
-          description="Posizioni, segnali, decisioni degli agenti e risultati saranno visibili dopo l’attivazione dei relativi servizi."
+          description="Consulta le proposte consultive in Analisi messaggi e Segnali. Le posizioni e gli esiti degli ordini richiedono ancora i controlli del rischio e il collegamento al broker."
         />
       </Section>
     </VStack>

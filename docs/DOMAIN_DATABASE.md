@@ -1,10 +1,21 @@
 # Domain and database contracts
 
 The foundation below was implemented in Phase 2 on 8 October 2026. Phase 4 adds the
-read-only Telegram collector and its fenced storage contract; risk evaluation,
+read-only Telegram collector and its fenced storage contract. Phase 5 adds offline
+advisory analysis and spend accounting; risk evaluation,
 external providers and trade execution remain unavailable. Historical foundation
 [validation](PHASE_2_VALIDATION.md) and [current Telegram evidence](PHASE_4_VALIDATION.md)
 record their separate acceptance scopes.
+
+## Phase 5 additions
+
+Revision `0005_analysis` adds append-only analysis receipts and protected provider
+spend reservations, for 41 mapped tables. Role-authenticated functions bind attempts
+and completion to current job generation, source/message/config versions and expiry.
+Provider calls hold no transaction. Completion atomically persists the receipt,
+optional advisory signal, legal transitions, audit/outbox and completed job.
+No risk approval or broker command is generated. Safe API views include analysis,
+signal attempts and unresolved budget holds. [Analysis contract](ANALYSIS.md).
 
 ## Phase 4 additions
 
@@ -69,4 +80,6 @@ Cleanup and evidence-producing writes share an environment advisory transaction 
 
 Jobs deduplicate by environment/service/key, reject conflicting payloads, claim with `FOR UPDATE SKIP LOCKED`, carry expiring leases and increasing generations, and reject completion by a stale worker/generation. Retry counts and backoff are bounded; exhausted leases enter DEAD. Queue ownership comes from the database login. Outbox records persist with business changes; no external dispatcher is active yet. These jobs do not authorize broker-send retries. Broker uncertainty still requires the separate reconciliation lifecycle. [PostgreSQL row locking](https://www.postgresql.org/docs/17/sql-select.html)
 
-The dashboard remains the Italian health shell. Its readiness contract confirms the current database migration, with paper mode and automation disabled. Login, operational data pages and configuration controls are Phase 3 work.
+The Italian dashboard has authenticated operational and configuration pages, including
+local analysis. Readiness confirms the current database migration with paper mode and
+automation disabled; it does not certify Telegram, external AI or broker availability.

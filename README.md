@@ -1,6 +1,9 @@
 # Autonomous trading orchestration platform
 
-Phase 4 adds client-managed Telegram sources, encrypted account enrollment and a
+Phase 5 adds strict message classification/parsing, durable offline advisory analysis,
+confirmed mock-agent activation, spend reservations and Italian analysis/detail pages.
+The Responses wire adapter is tested with a fake transport; external AI remains disabled.
+Phase 4 provides client-managed Telegram sources, encrypted account enrollment and a
 bounded read-only collector, with durable message revisions, recovery and account
 fencing. The Italian dashboard retains ADMIN/VIEWER roles and confirmed changes.
 Telegram collection requires operator credentials/enrollment and remains disabled
@@ -53,7 +56,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres re
 pnpm dev
 ```
 
-This initializes the database, then starts the API, isolated bridge, AI placeholder, collector placeholder, maintenance heartbeat and dashboard as separate processes. Each receives a scoped environment and its own database role. Ctrl+C stops the children. This supervisor is for local development; production service management belongs to deployment work.
+This initializes the database, then starts the API, isolated bridge, offline AI worker, read-only collector, maintenance heartbeat and dashboard as separate processes. Each receives a scoped environment and its own database role. Ctrl+C stops the children. This supervisor is for local development; production service management belongs to deployment work.
 
 Standalone tasks are `pnpm db:provision`, `pnpm db:migrate` and `pnpm db:bootstrap`.
 `pnpm user:create` interactively provisions another ADMIN or VIEWER without printing
@@ -68,7 +71,7 @@ pnpm api:generate
 git diff --exit-code -- packages/shared-types
 ```
 
-`pnpm check` runs Python lint/unit tests and frontend typecheck, lint, tests and production build. PostgreSQL integration tests require an explicit `TEST_ADMIN_DATABASE_URL`; they create and drop only random `trd_test_*` databases. Never supply a production server. CI includes these integration tests and Windows foundation-script checks. See [Phase 4 validation evidence](docs/PHASE_4_VALIDATION.md), [the Telegram contract](docs/TELEGRAM.md), [Phase 3 validation evidence](docs/PHASE_3_VALIDATION.md),
+`pnpm check` runs Python lint/unit tests and frontend typecheck, lint, tests and production build. PostgreSQL integration tests require an explicit `TEST_ADMIN_DATABASE_URL`; they create and drop only random `trd_test_*` databases. Never supply a production server. CI includes these integration tests and Windows foundation-script checks. See [Phase 5 validation evidence](docs/PHASE_5_VALIDATION.md), [the analysis contract](docs/ANALYSIS.md), [Phase 4 validation evidence](docs/PHASE_4_VALIDATION.md), [the Telegram contract](docs/TELEGRAM.md), [Phase 3 validation evidence](docs/PHASE_3_VALIDATION.md),
 [the authentication contract](docs/DASHBOARD_AUTH.md), [Phase 2 validation evidence](docs/PHASE_2_VALIDATION.md) and the [earlier infrastructure validation](docs/PHASE_1_VALIDATION.md) for results and limits.
 
 ## Structure and documentation
@@ -91,4 +94,4 @@ git diff --exit-code -- packages/shared-types
 - [Dashboard implementation notes](apps/dashboard/README.md)
 - [Phase 0 approval record](docs/PHASE_0_APPROVAL.md)
 
-The simulator entrypoint reports liveness only; it does not simulate execution yet. The deterministic risk engine, AI orchestration, MT5 EA and recovery pipeline remain later phases. Windows native services, MT5, TLS, real broker behavior and reboot recovery require tests on the target Windows host.
+The simulator entrypoint reports liveness only; it does not simulate execution yet. The deterministic risk engine, external AI acceptance, MT5 EA and broker recovery remain later gates. Windows native services, MT5, TLS, real broker behavior and reboot recovery require tests on the target Windows host.

@@ -6,6 +6,7 @@ import {VStack, HStack} from '@astryxdesign/core/Stack';
 import {Text, Heading} from '@astryxdesign/core/Text';
 import {TextInput} from '@astryxdesign/core/TextInput';
 import {Selector} from '@astryxdesign/core/Selector';
+import {CheckboxInput} from '@astryxdesign/core/CheckboxInput';
 import {Button} from '@astryxdesign/core/Button';
 import {Banner} from '@astryxdesign/core/Banner';
 import {Dialog, DialogHeader} from '@astryxdesign/core/Dialog';
@@ -177,12 +178,12 @@ export default function ConfigurationEditor({
         )
           throw new Error('Durata e numero di token devono essere interi.');
         value = {
-          enabled: false,
+          enabled: values.enabled === 'true',
           primary_model_id: values.primary_model_id ?? '',
           fallback_model_ids: (values.fallback_model_ids ?? '').trim()
             ? (values.fallback_model_ids ?? '').split(',').map((v) => v.trim())
             : [],
-          prompt_version: Number(row.prompt_version),
+          prompt_version: values.enabled === 'true' ? 2 : Number(row.prompt_version),
           timeout_seconds: Number(values.timeout_seconds ?? ''),
           max_output_tokens: Number(values.max_output_tokens ?? ''),
           max_cost_usd: '0',
@@ -193,6 +194,16 @@ export default function ConfigurationEditor({
             name: 'Modello principale',
             before: String(row.primary_model_id),
             after: values.primary_model_id ?? '',
+          },
+          {
+            name: 'Analisi locale',
+            before: row.enabled ? 'Attivata' : 'Disattivata',
+            after: values.enabled === 'true' ? 'Attivata' : 'Disattivata',
+          },
+          {
+            name: 'Versione delle istruzioni',
+            before: String(row.prompt_version),
+            after: values.enabled === 'true' ? '2' : String(row.prompt_version),
           },
           {
             name: 'Modelli alternativi',
@@ -271,7 +282,9 @@ export default function ConfigurationEditor({
               {kind === 'risk'
                 ? 'Puoi ridurre i limiti attuali. Stop loss e take profit rimangono obbligatori.'
                 : kind === 'agent'
-                  ? 'Prepara la configurazione. L’agente resterà disattivato.'
+                  ? row.name === 'POSITION_REVIEW_AGENT'
+                    ? 'La revisione delle posizioni non è ancora disponibile.'
+                    : 'Prepara l’analisi locale e verifica il riepilogo prima di confermare.'
                   : kind === 'source'
                     ? 'Autorizza la lettura di un canale o gruppo accessibile all’account collegato. La verifica avviene dopo il salvataggio.'
                     : 'Imposta il periodo di conservazione. Le evidenze necessarie alle operazioni restano protette.'}
@@ -321,6 +334,17 @@ export default function ConfigurationEditor({
               </>
             ) : (
               <>
+                <CheckboxInput
+                  label="Analisi locale"
+                  description="Attiva con simulatore locale dopo revisione e conferma."
+                  value={values.enabled === 'true'}
+                  onChange={(value) => setValues((previous) => ({
+                    ...previous,
+                    enabled: String(value),
+                    prompt_version: value ? '2' : String(row.prompt_version),
+                  }))}
+                  isReadOnly={!canEdit || busy || row.name === 'POSITION_REVIEW_AGENT'}
+                />
                 <Selector
                   label="Modello principale"
                   value={values.primary_model_id ?? ''}
@@ -357,7 +381,9 @@ export default function ConfigurationEditor({
                   true
                 )}
                 {field('prompt_version', 'Versione delle istruzioni', true)}
-                <Token label="AGENTE DISATTIVATO" color="gray" />
+                <Token label="SOLO ANALISI LOCALE" color="gray" />
+                <Text color="secondary">Il simulatore produce valutazioni consultive senza
+                  osservare il mercato. L’analisi non autorizza ordini.</Text>
               </>
             )}
             {error && <Banner status="error" title={error} />}

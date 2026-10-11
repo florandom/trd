@@ -79,4 +79,39 @@ export const STATUS: Record<string, string> = {
   STOPPED: 'Arrestato',
   BUY: 'Acquisto',
   SELL: 'Vendita',
+  SUCCEEDED: 'Valutazione registrata',
+  REFUSED: 'Richiesta rifiutata',
 };
+
+export const ANALYSIS_REASONS: Record<string, string> = {
+  NO_SIGNAL: 'Nessun segnale riconosciuto',
+  UNSUPPORTED_FORMAT: 'Formato non supportato o ambiguo',
+  UNSUPPORTED_SYMBOL: 'Strumento non supportato',
+  INVALID_PRICES: 'Prezzi o protezioni incoerenti',
+  REVIEW_ONLY: 'Risposta, modifica o cancellazione da rivedere',
+  STALE_MESSAGE: 'Messaggio troppo vecchio',
+  FUTURE_MESSAGE: 'Data del messaggio da verificare',
+  EVIDENCE_UNAVAILABLE: 'Contenuto originale non disponibile',
+  AGENT_DISABLED: 'Agente richiesto disattivato',
+  MODEL_UNAVAILABLE: 'Modello non disponibile o incompatibile',
+  PROMPT_UNAVAILABLE: 'Istruzioni non disponibili o non verificate',
+  CONFIG_CHANGED: 'Configurazione modificata durante l’analisi',
+  BUDGET_EXHAUSTED: 'Limite di spesa raggiunto',
+  PROVIDER_DISABLED: 'Fornitore esterno disabilitato',
+  PROVIDER_REFUSAL: 'Richiesta rifiutata dal fornitore',
+  PROVIDER_TIMEOUT: 'Tempo massimo della richiesta superato',
+  PROVIDER_UNAVAILABLE: 'Fornitore non disponibile',
+  PROVIDER_RATE_LIMIT: 'Attesa richiesta dal fornitore',
+  PROVIDER_QUOTA: 'Credito o quota del fornitore esauriti',
+  PROVIDER_INCOMPLETE: 'Risposta incompleta',
+  INVALID_OUTPUT: 'Risposta non valida',
+  UNKNOWN_USAGE: 'Consumo non confermato e prenotazione conservata',
+  MOCK_ONLY: 'Valutazione del simulatore locale',
+  NO_MARKET_CONTEXT: 'Dati di mercato verificati non disponibili',
+  RISK_NOT_IMPLEMENTED: 'Verifica del rischio ancora da implementare',
+};
+export function analysisReasons(value: unknown): string {
+  return Array.isArray(value)
+    ? value.map((code) => ANALYSIS_REASONS[String(code)] ?? 'Motivo da verificare').join('; ')
+    : 'Motivo non disponibile';
+}

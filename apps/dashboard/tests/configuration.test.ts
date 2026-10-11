@@ -18,6 +18,7 @@ test('risk percentages preserve exact decimal digits', () => {
 
 test('dashboard proxy only accepts known paths and configured origins', () => {
   assert.equal(allowedRoute('auth/me', 'GET'), true);
+  assert.equal(allowedRoute('ops/analyses', 'GET'), true);
   assert.equal(allowedRoute('config/apply', 'POST'), true);
   for (const route of [
     '../bridge/commands',

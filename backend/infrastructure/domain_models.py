@@ -359,6 +359,61 @@ class AIUsage(ScopedRecord):
     usage_known: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
 
 
+class AnalysisRecord(ScopedRecord):
+    __tablename__ = "analysis_records"
+    __table_args__ = (
+        fk("job_id", "jobs"),
+        fk("signal_id", "signals"),
+        version_fk("message_id", "message_version", "telegram_message_versions", "message_id"),
+        UniqueConstraint("environment_id", "job_id"),
+        UniqueConstraint("environment_id", "message_id", "message_version"),
+        choice("classification", "NOISE STRUCTURED AMBIGUOUS REVIEW"),
+        choice("outcome", "IGNORED ESCALATED EXPIRED WAITING REJECTED_AI"),
+        CheckConstraint("input_hash ~ '^[a-f0-9]{64}$'"),
+        CheckConstraint("source_version >= 1"),
+    )
+    job_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+    message_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+    message_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    source_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    signal_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True))
+    trace_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+    classification: Mapped[str] = mapped_column(String(16), nullable=False)
+    outcome: Mapped[str] = mapped_column(String(16), nullable=False)
+    reason_codes: Mapped[list[str]] = mapped_column(JSONB, nullable=False)
+    route_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    input_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    config_versions: Mapped[dict[str, int]] = mapped_column(JSONB, nullable=False)
+
+
+class AIBudgetReservation(ScopedRecord):
+    __tablename__ = "ai_budget_reservations"
+    __table_args__ = (
+        fk("job_id", "jobs"),
+        version_fk("agent_id", "config_version", "agent_configs", "agent_id"),
+        UniqueConstraint("environment_id", "job_id", "generation", "agent_id", "attempt"),
+        choice("state", "RESERVED SETTLED UNKNOWN"),
+        CheckConstraint("attempt BETWEEN 1 AND 3 AND generation >= 1"),
+        CheckConstraint("reserved_usd >= 0 AND charged_usd >= 0"),
+        CheckConstraint("input_token_ceiling >= 0 AND output_token_ceiling > 0"),
+        CheckConstraint("(state = 'SETTLED') = (charged_usd IS NOT NULL)"),
+        Index("ix_ai_budget_period", "environment_id", "created_at"),
+    )
+    job_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+    generation: Mapped[int] = mapped_column(Integer, nullable=False)
+    agent_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+    config_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    model_id: Mapped[str] = mapped_column(ForeignKey("model_registry.id"), nullable=False)
+    attempt: Mapped[int] = mapped_column(Integer, nullable=False)
+    reserved_usd: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
+    charged_usd: Mapped[Decimal | None] = mapped_column(MONEY)
+    input_token_ceiling: Mapped[int] = mapped_column(Integer, nullable=False)
+    output_token_ceiling: Mapped[int] = mapped_column(Integer, nullable=False)
+    state: Mapped[str] = mapped_column(String(16), nullable=False, server_default="RESERVED")
+    snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    settled_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+
+
 class RiskRule(Base):
     __tablename__ = "risk_rules"
     __table_args__ = (

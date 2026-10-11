@@ -132,5 +132,4 @@ def test_unimplemented_integrations_cannot_be_enabled():
         CollectorSettings(**config("collector", telegram_enabled=True))
     with pytest.raises(ValidationError):
         AiSettings(**config("ai", ai_provider_mode="openai"))
-    with pytest.raises(ValidationError):
-        AiSettings(**config("ai", enable_critic_agent=True))
+    assert AiSettings(**config("ai", enable_critic_agent=True)).enable_critic_agent

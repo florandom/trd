@@ -183,11 +183,38 @@ class AiSettings(ServiceSettings):
     ai_provider_mode: Literal["mock"] = "mock"
     enable_critic_agent: bool = False
     enable_adaptive_memory: bool = False
+    ai_hard_daily_budget_usd: Decimal = Field(default=Decimal("0"), ge=0, allow_inf_nan=False)
+    ai_hard_monthly_budget_usd: Decimal = Field(default=Decimal("0"), ge=0, allow_inf_nan=False)
+    ai_hard_daily_budget_per_agent_usd: Decimal = Field(
+        default=Decimal("0"), ge=0, allow_inf_nan=False
+    )
+    ai_hard_max_cost_per_request_usd: Decimal = Field(
+        default=Decimal("0"), ge=0, allow_inf_nan=False
+    )
+    ai_hard_max_output_tokens: int = Field(default=4096, ge=1, le=4096)
+    ai_hard_timeout_seconds: int = Field(default=30, ge=1, le=120)
+    ai_signal_max_age_seconds: int = Field(default=900, ge=30, le=3600)
+    ai_job_lease_seconds: int = Field(default=180, ge=10, le=300)
+
+    @field_validator(
+        "ai_hard_daily_budget_usd",
+        "ai_hard_monthly_budget_usd",
+        "ai_hard_daily_budget_per_agent_usd",
+        "ai_hard_max_cost_per_request_usd",
+        mode="before",
+    )
+    @classmethod
+    def exact_budgets(cls, value):
+        if isinstance(value, (float, bool)):
+            raise ValueError("cost limits require decimal strings")
+        return value
 
     @model_validator(mode="after")
-    def analysis_is_not_implemented(self) -> AiSettings:
-        if self.enable_critic_agent or self.enable_adaptive_memory:
-            raise ValueError("Agent and adaptive-memory capabilities are unavailable in Phase 1")
+    def offline_analysis_only(self) -> AiSettings:
+        if self.enable_adaptive_memory:
+            raise ValueError("Adaptive memory is unavailable")
+        if self.ai_job_lease_seconds <= self.ai_hard_timeout_seconds + 5:
+            raise ValueError("analysis lease must exceed its total deadline and commit margin")
         return self
 
 

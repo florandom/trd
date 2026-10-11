@@ -1,6 +1,30 @@
 # Environment and configuration matrix
 
-Status: Phase 4, 9 October 2026. `.env.example`, private local generation, service-scoped validation, dashboard authentication and the read-only Telegram adapter are implemented. Telegram requires operator enrollment and is disabled in the current local deployment. Provider AI, broker execution and external-access verification remain future work. Historical Phase 1 observations below retain their original scope; the full variable matrix includes reserved future fields.
+Status: Phase 5 local analysis, 11 October 2026. `.env.example`, scoped configuration, authenticated dashboard, read-only Telegram adapter and offline advisory analysis are implemented. Telegram requires enrollment; agents require confirmed activation with the mock. External providers, broker execution and external-access verification remain disabled. Historical Phase 1 observations retain their original scope; the full matrix includes reserved future fields.
+
+## Current analysis additions
+
+The AI worker alone consumes cost envelopes and request/lease controls.
+AI_PROVIDER_MODE permits only mock; populated provider keys cannot activate network
+requests. ENABLE_ADAPTIVE_MEMORY=true remains rejected. ENABLE_CRITIC_AGENT=true makes
+the configured critic mandatory; the dashboard can also add the optional local critic.
+
+| Variable | Implemented default and bounds |
+| --- | --- |
+| AI_SIGNAL_MAX_AGE_SECONDS | `900`; 30–3600 seconds from publication, rechecked at completion |
+| AI_JOB_LEASE_SECONDS | `180`; 10–300, greater than total deadline plus five seconds |
+| AI_HARD_TIMEOUT_SECONDS | `30`; 1–120 seconds across stages and alternatives |
+| AI_HARD_MAX_OUTPUT_TOKENS | `4096`; 1–4096, tightened by agent/model caps |
+| AI_HARD_DAILY_BUDGET_USD | `0.00`; global daily UTC cost ceiling |
+| AI_HARD_MONTHLY_BUDGET_USD | `0.00`; global monthly UTC cost ceiling |
+| AI_HARD_DAILY_BUDGET_PER_AGENT_USD | `0.00`; per-agent daily ceiling |
+| AI_HARD_MAX_COST_PER_REQUEST_USD | `0.00`; per-attempt ceiling, tightened by agent cap |
+
+Budget values use finite nonnegative decimal strings. Unknown/open attempts retain
+their reservation across periods and restart. Existing `.env` files retain their
+values; add new names to customize defaults and restart the relevant process.
+No paid provider is activated by these settings. See the
+[analysis contract](ANALYSIS.md) and [Italian team guide](team/GUIDA_PREPARAZIONE.md).
 
 ## Current Telegram additions
 
