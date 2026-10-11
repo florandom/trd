@@ -29,7 +29,7 @@ class ServiceSettings(BaseSettings):
     )
 
     service_name: ServiceName = "api"
-    app_env: Literal["development", "test", "production"] = "development"
+    app_env: Literal["development", "test", "staging", "production"] = "development"
     environment_id: str = Field(pattern=r"^[a-z][a-z0-9_-]{0,63}$")
     database_url: SecretStr
     trading_mode: Literal["paper", "demo", "live"] = "paper"
@@ -76,7 +76,7 @@ class ServiceSettings(BaseSettings):
             raise ValueError(
                 "DATABASE_URL must use psycopg, explicit port, credentials and the service role"
             ) from None
-        if self.app_env == "production":
+        if self.app_env in {"staging", "production"}:
             if len(password) < 20 or password.lower() in {"changeme", "password", "postgres"}:
                 raise ValueError("Production database credentials must be provisioned securely")
             if self.log_level == "DEBUG":
@@ -109,6 +109,8 @@ class ApiSettings(ServiceSettings):
     auth_mfa_required: bool = False
     cloudflare_access_issuer: str | None = None
     cloudflare_access_audience: str | None = None
+    remote_access_mode: Literal["local", "cloudflare"] = "local"
+    dashboard_proxy_secret: SecretStr | None = None
 
     @model_validator(mode="after")
     def validate_api(self) -> ApiSettings:
@@ -122,17 +124,46 @@ class ApiSettings(ServiceSettings):
             raise ValueError("APP_URL must be a trusted HTTP(S) origin without credentials")
         if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
             raise ValueError("APP_URL must be an origin, not a path")
-        if self.auth_mfa_required:
-            raise ValueError("Local MFA is unavailable; remote deployment remains disabled")
+        local = parsed.hostname in {"localhost", "127.0.0.1", "::1"}
+        if self.remote_access_mode == "local":
+            if not local or self.auth_mfa_required:
+                raise ValueError("Local access requires a loopback origin and no external MFA")
+        else:
+            issuer = urlsplit(self.cloudflare_access_issuer or "")
+            import re
+
+            if (
+                local
+                or parsed.scheme != "https"
+                or parsed.port not in {None, 443}
+                or not self.auth_cookie_secure
+                or not self.auth_mfa_required
+                or issuer.scheme != "https"
+                or not re.fullmatch(r"[a-z0-9-]+\.cloudflareaccess\.com", issuer.hostname or "")
+                or issuer.path not in {"", "/"}
+                or issuer.port is not None
+                or issuer.username
+                or issuer.password
+                or issuer.query
+                or issuer.fragment
+                or not re.fullmatch(r"[a-f0-9]{64}", self.cloudflare_access_audience or "")
+                or self.dashboard_proxy_secret is None
+                or not re.fullmatch(
+                    r"[A-Za-z0-9_-]{43,128}", self.dashboard_proxy_secret.get_secret_value()
+                )
+            ):
+                raise ValueError(
+                    "Remote access requires HTTPS, a fixed Access app, MFA and a proxy key"
+                )
+            if self.app_env not in {"test", "staging", "production"}:
+                raise ValueError("Remote access requires a separately provisioned environment")
+            if self.app_env != "test" and not self.environment_id.startswith(self.app_env + "-"):
+                raise ValueError("Remote environment identity must match its deployment stage")
         if self.auth_idle_ttl_seconds > self.auth_session_ttl_seconds:
             raise ValueError("Idle session lifetime must not exceed absolute session lifetime")
-        if self.app_env == "production":
+        if self.app_env in {"staging", "production"}:
             if not self.auth_cookie_secure or parsed.scheme != "https":
                 raise ValueError("Production requires HTTPS and secure cookies")
-            # No Access assertion verification or local MFA is implemented yet.
-            # A remote-looking origin must not imply an authenticated dashboard.
-            if parsed.hostname not in {"localhost", "127.0.0.1", "::1"}:
-                raise ValueError("Remote production access requires verified external MFA")
         return self
 
 
@@ -173,14 +204,18 @@ class CollectorSettings(ServiceSettings):
             r"[a-fA-F0-9]{64}", self.telegram_session_encryption_key.get_secret_value()
         ):
             raise ValueError("Telegram session encryption requires a 256-bit hexadecimal key")
-        if self.app_env == "production" and self.telegram_session_path is not None:
+        if self.app_env in {"staging", "production"} and self.telegram_session_path is not None:
             if not self.telegram_session_path.is_absolute():
                 raise ValueError("Production Telegram session path must be absolute")
 
 
 class AiSettings(ServiceSettings):
     service_name: Literal["ai"] = "ai"
-    ai_provider_mode: Literal["mock"] = "mock"
+    ai_provider_mode: Literal["mock", "openrouter"] = "mock"
+    openrouter_api_key: SecretStr | None = None
+    openrouter_manifest_path: Path | None = None
+    openrouter_acceptance_path: Path | None = None
+    ai_hard_max_input_tokens: int = Field(default=131_072, ge=1, le=1_000_000)
     enable_critic_agent: bool = False
     enable_adaptive_memory: bool = False
     ai_hard_daily_budget_usd: Decimal = Field(default=Decimal("0"), ge=0, allow_inf_nan=False)
@@ -210,11 +245,28 @@ class AiSettings(ServiceSettings):
         return value
 
     @model_validator(mode="after")
-    def offline_analysis_only(self) -> AiSettings:
+    def bounded_analysis(self) -> AiSettings:
         if self.enable_adaptive_memory:
             raise ValueError("Adaptive memory is unavailable")
         if self.ai_job_lease_seconds <= self.ai_hard_timeout_seconds + 5:
             raise ValueError("analysis lease must exceed its total deadline and commit margin")
+        if self.ai_provider_mode == "openrouter":
+            if (
+                self.openrouter_api_key is None
+                or not self.openrouter_api_key.get_secret_value().strip()
+                or self.openrouter_acceptance_path is None
+                or not self.openrouter_acceptance_path.is_file()
+                or min(
+                    self.ai_hard_daily_budget_usd,
+                    self.ai_hard_monthly_budget_usd,
+                    self.ai_hard_daily_budget_per_agent_usd,
+                    self.ai_hard_max_cost_per_request_usd,
+                )
+                <= 0
+            ):
+                raise ValueError(
+                    "OpenRouter requires a key, network acceptance receipt and explicit budgets"
+                )
         return self
 
 
@@ -260,7 +312,7 @@ class BridgeSettings(ServiceSettings):
     def disabled_capabilities(self) -> BridgeSettings:
         if self.enable_pending_orders or self.enable_partial_close:
             raise ValueError("Phase 1 has no broker execution capabilities")
-        if self.app_env == "production":
+        if self.app_env in {"staging", "production"}:
             required = {
                 "hard_max_risk_per_trade",
                 "hard_max_daily_loss",

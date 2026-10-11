@@ -51,7 +51,9 @@ export default function ConfigurationEditor({
   onSaved: () => void;
 }) {
   const user = useSession();
+  const [observedAt] = useState(() => Date.now());
   const canEdit = user.role === 'ADMIN';
+  const externalEligible = ['MARKET_ANALYST', 'DECISION_AGENT', 'CRITIC'].includes(String(row.name));
   const original = (
     kind === 'risk'
       ? row.policy
@@ -186,7 +188,7 @@ export default function ConfigurationEditor({
           prompt_version: values.enabled === 'true' ? 2 : Number(row.prompt_version),
           timeout_seconds: Number(values.timeout_seconds ?? ''),
           max_output_tokens: Number(values.max_output_tokens ?? ''),
-          max_cost_usd: '0',
+          max_cost_usd: shiftDecimal(values.max_cost_usd ?? '0', 0),
           required_schema_version: Number(row.required_schema_version),
         };
         changes = [
@@ -196,9 +198,14 @@ export default function ConfigurationEditor({
             after: values.primary_model_id ?? '',
           },
           {
-            name: 'Analisi locale',
+            name: 'Agente attivo',
             before: row.enabled ? 'Attivata' : 'Disattivata',
             after: values.enabled === 'true' ? 'Attivata' : 'Disattivata',
+          },
+          {
+            name: 'Costo massimo per richiesta (USD)',
+            before: String(row.max_cost_usd),
+            after: values.max_cost_usd ?? '0',
           },
           {
             name: 'Versione delle istruzioni',
@@ -284,7 +291,7 @@ export default function ConfigurationEditor({
                 : kind === 'agent'
                   ? row.name === 'POSITION_REVIEW_AGENT'
                     ? 'La revisione delle posizioni non è ancora disponibile.'
-                    : 'Prepara l’analisi locale e verifica il riepilogo prima di confermare.'
+                    : 'Scegli il modello e verifica il riepilogo prima di confermare. L’attivazione non autorizza ordini.'
                   : kind === 'source'
                     ? 'Autorizza la lettura di un canale o gruppo accessibile all’account collegato. La verifica avviene dopo il salvataggio.'
                     : 'Imposta il periodo di conservazione. Le evidenze necessarie alle operazioni restano protette.'}
@@ -335,8 +342,8 @@ export default function ConfigurationEditor({
             ) : (
               <>
                 <CheckboxInput
-                  label="Analisi locale"
-                  description="Attiva con simulatore locale dopo revisione e conferma."
+                  label="Agente attivo"
+                  description="Attiva il modello selezionato dopo revisione e conferma. I modelli esterni possono generare costi."
                   value={values.enabled === 'true'}
                   onChange={(value) => setValues((previous) => ({
                     ...previous,
@@ -356,12 +363,15 @@ export default function ConfigurationEditor({
                   }
                   options={models
                     .filter(
-                      (model) => model.enabled && model.provider === 'mock'
+                      (model) => model.enabled && (model.provider === 'mock' ||
+                        (externalEligible && model.provider === 'openrouter' &&
+                          new Date(String(model.accepted_until)).getTime() > observedAt))
                     )
                     .map((model) => ({
                       value: String(model.id),
-                      label: 'Simulatore locale',
-                      description: String(model.id),
+                      label: model.provider === 'mock' ? 'Simulatore locale' : String(model.model_name),
+                      description: model.provider === 'mock' ? String(model.id) :
+                        `OpenRouter · ${model.provider_label} · approvazione fino al ${formatCheckedAt(String(model.accepted_until))}`,
                     }))}
                   isReadOnly={!canEdit || busy}
                   emptyText="Nessun modello disponibile"
@@ -378,12 +388,14 @@ export default function ConfigurationEditor({
                 {field(
                   'max_cost_usd',
                   'Costo massimo della richiesta (USD)',
-                  true
+                  !externalEligible
                 )}
                 {field('prompt_version', 'Versione delle istruzioni', true)}
-                <Token label="SOLO ANALISI LOCALE" color="gray" />
-                <Text color="secondary">Il simulatore produce valutazioni consultive senza
-                  osservare il mercato. L’analisi non autorizza ordini.</Text>
+                <Token label="ANALISI CONSULTIVA" color="gray" />
+                <Text color="secondary">Il simulatore richiede costo massimo zero.
+                  I modelli OpenRouter compaiono dopo il collaudo del team e richiedono un
+                  limite positivo entro i budget autorizzati. L’analisi non dispone ancora
+                  di dati di mercato e non autorizza ordini.</Text>
               </>
             )}
             {error && <Banner status="error" title={error} />}

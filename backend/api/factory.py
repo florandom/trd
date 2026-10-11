@@ -7,6 +7,7 @@ import logging
 import threading
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from hmac import compare_digest
 from uuid import uuid4
 
 from fastapi import FastAPI, Response
@@ -20,6 +21,7 @@ from backend.api.schemas import HealthLiveness, HealthReadiness
 from backend.application.dashboard import DashboardService
 from backend.application.runtime import HeartbeatHook, HeartbeatRuntime, Probe
 from backend.domain.config import ApiSettings, BridgeSettings
+from backend.infrastructure.access import AccessRejected, AccessVerifier
 
 
 def _lifespan(
@@ -46,6 +48,7 @@ def create_app(
     heartbeat: HeartbeatHook | None = None,
     *,
     engine: Engine | None = None,
+    access_verifier: AccessVerifier | None = None,
 ) -> FastAPI:
     app = FastAPI(
         title="Trading orchestration foundation",
@@ -58,6 +61,7 @@ def create_app(
 
     app.add_middleware(BodyLimit)
     app.include_router(dashboard_router(DashboardService(settings, engine)))
+    verifier = access_verifier or AccessVerifier(settings)
 
     @app.exception_handler(RequestValidationError)
     async def invalid_input(_request, _error):
@@ -69,12 +73,34 @@ def create_app(
         # Generate our own ID. Untrusted headers cannot inject log fields or
         # impersonate a trace belonging to another request.
         request.state.trace_id = str(uuid4())
-        response = await call_next(request)
+        if settings.remote_access_mode == "cloudflare" and request.url.path != "/health/live":
+            supplied = request.headers.get("X-TRD-Proxy-Key", "")
+            expected = settings.dashboard_proxy_secret.get_secret_value()
+            if not compare_digest(supplied.encode(), expected.encode()):
+                response = JSONResponse(
+                    status_code=401, content={"detail": "REMOTE_ACCESS_REQUIRED"}
+                )
+            elif request.headers.get("X-TRD-Environment") != settings.environment_id:
+                response = JSONResponse(status_code=409, content={"detail": "ENVIRONMENT_MISMATCH"})
+            else:
+                try:
+                    request.state.access_identity = await asyncio.to_thread(
+                        verifier.verify, request.headers.get("X-TRD-User-Assertion")
+                    )
+                except AccessRejected:
+                    response = JSONResponse(
+                        status_code=401, content={"detail": "REMOTE_ACCESS_REQUIRED"}
+                    )
+                else:
+                    response = await call_next(request)
+        else:
+            response = await call_next(request)
         response.headers["X-Trace-ID"] = request.state.trace_id
         response.headers["Cache-Control"] = "no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["X-TRD-Environment"] = settings.environment_id
         return response
 
     @app.get("/health/live", response_model=HealthLiveness, operation_id="health_live")

@@ -1,5 +1,13 @@
 # Windows native foundation — Phase 1
 
+> Updated topology, 12 October 2026: the authenticated dashboard, Telegram collector
+> and advisory analysis are implemented. Phase 5b prepares the dashboard for Vercel
+> and the persistent backend for Windows or Linux. The historical Phase 1 procedure
+> below describes the local foundation; use [Vercel and remote environments](DEPLOYMENT_VERCEL.md)
+> for scoped environment export, Cloudflare Access/MFA and `-BackendOnly` service
+> templates. External accounts, native service installation and reboot recovery
+> still require target-host acceptance. Risk, orders and MT5 execution remain future work.
+
 This document prepares the Windows-native fallback. It is not a completed production deployment runbook. Phase 1 provides configuration, database/migration, process and health foundations; Telegram ingestion, AI calls, authenticated dashboard administration, EA execution, TLS/Access configuration and trading are later phases. Paper mode and disabled automation/live flags are mandatory. Windows service startup, virtual-account permissions, MT5 and pre-login reboot recovery have not been tested on the available macOS host.
 
 The preferred conditional WSL2/Docker Engine path and its nested-virtualization/boot constraints remain in [Windows research](research/WINDOWS.md). Docker Desktop is not a Windows Server prerequisite.

@@ -1,5 +1,14 @@
 # Dashboard foundation
 
+Current preparation before phase 6: the same dashboard can deploy on Vercel while
+Python and workers remain on Windows/Linux. vercel.json selects the deployment
+preflight and root-pinned Corepack installation. Remote Route Handlers attach server
+Access credentials, the original human assertion and an environment fence. Preview
+cannot target production or use unapproved origins. OpenRouter models become selectable
+only after operator acceptance/import; request cost is included in confirmation.
+See [deployment](../../docs/DEPLOYMENT_VERCEL.md) and [OpenRouter](../../docs/OPENROUTER.md).
+The following phase sections retain their original historical scope.
+
 Phase 1 exposes read-only infrastructure readiness. Paper mode and disabled automation are fixed in the public contract. Authentication, settings, trading data and administrative controls belong to later phases; disabled navigation labels make that scope explicit.
 
 Customer-facing copy, errors, metadata and accessible controls use Italian (`it-IT`). Astryx's built-in navigation, resize and loading labels are translated through its `InternationalizationProvider` with the local overrides in `src/lib/locale.ts`. Observation times use Italian formatting and `Europe/Rome`, including the time-zone abbreviation; the API contract retains UTC timestamps and its existing status identifiers. New dashboard features must follow the Italian-language guidance in `AGENTS.md`.

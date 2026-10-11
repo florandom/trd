@@ -113,6 +113,10 @@ def credential_owner(variable):
         return {"postgres"}
     if variable.startswith(PROVIDER_PREFIXES):
         return {"worker"}
+    if variable == "OPENROUTER_API_KEY":
+        return {"worker"}
+    if variable == "DASHBOARD_PROXY_SECRET":
+        return {"api", "dashboard"}
     if variable.startswith("MT5_"):
         return {"bridge"}
     if variable.startswith("TELEGRAM_API_") or variable == "TELEGRAM_SESSION_ENCRYPTION_KEY":

@@ -25,6 +25,7 @@ from backend.domain.config import AiSettings
 from backend.domain.contracts import AgentConfiguration, ModelDefinition, Proposal, fingerprint
 from backend.domain.telegram import TelegramObservation
 from backend.infrastructure.analysis_repository import AnalysisStore, BudgetExhausted
+from backend.infrastructure.database import SCHEMA_REVISION
 from backend.infrastructure.domain_models import (
     Agent,
     AgentConfig,
@@ -533,5 +534,5 @@ def test_forward_backward_migration_preserves_telegram(isolated_database):
     with db.migration_engine.connect() as connection:
         assert (
             connection.scalar(text("SELECT version_num FROM public.alembic_version"))
-            == "0005_analysis"
+            == SCHEMA_REVISION
         )

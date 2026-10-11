@@ -1,8 +1,8 @@
 # TRD Preparazione pratica per il team di sviluppo
 
-Aggiornamento del 11 ottobre 2026 | Versione fase 5 | Installazione locale e predisposizione delle integrazioni
+Aggiornamento del 12 ottobre 2026 | Versione fase 5b | Vercel e backend persistente con ambienti separati
 
-Questa guida indica cosa predisporre per usare TRD con un cliente: ambiente, account, variabili, chiavi e verifiche. Accesso, dashboard, raccolta Telegram e analisi consultiva locale sono implementati. L’analisi usa un parser rigoroso e un simulatore, con esiti e tentativi registrati nel database. Per Telegram reale mancano ancora credenziali e accesso all’account. Il contratto OpenAI è collaudato soltanto con trasporto simulato; IA esterna, motore di rischio ed esecuzione MT5 richiedono ancora i rispettivi gate.
+Questa guida indica cosa predisporre per usare TRD con un cliente: ambiente, account, variabili, chiavi e verifiche. Accesso, dashboard, raccolta Telegram e analisi consultiva sono implementati. La preparazione prima della fase 6 aggiunge dashboard su Vercel, verifica remota Cloudflare Access con MFA, ambienti separati e adapter OpenRouter con collaudo esplicito. I test locali usano account e trasporti sintetici. Servono ancora dominio, account Vercel/Cloudflare, MFA reale, account OpenRouter e collaudo sul VPS. L’installazione esistente resta locale con mock, Telegram e trading disattivati. Il backend persistente resta Python su Windows, con percorso Linux disponibile; rischio ed esecuzione MT5 sono futuri.
 
 Le configurazioni future elencate qui preparano il lavoro del team. La presenza di una chiave non dimostra che l’integrazione sia implementata, collegata o autorizzata. Non inserire credenziali reali in questa guida, nei ticket, nei log o negli esempi condivisi.
 
@@ -11,13 +11,14 @@ Le configurazioni future elencate qui preparano il lavoro del team. La presenza 
 | Account o servizio | Cosa predisporre | Quando serve |
 | --- | --- | --- |
 | Utenti TRD | Amministratore iniziale e utenti nominativi ADMIN o VIEWER | Già ora per la dashboard |
-| PostgreSQL | Istanza locale e credenziali distinte per sei ruoli applicativi e operatore | Già ora; create dal setup locale |
+| PostgreSQL | Istanza locale; istanze staging e produzione indipendenti, ruoli con password distinte | Già ora in locale; prima del deploy remoto |
 | Telegram lettura | Account umano autorizzato dal cliente, accesso alle fonti, API ID e API hash dell’applicazione | Prima di attivare la raccolta reale |
-| Provider IA | Account API, progetto dedicato, modello e prezzi verificati, limiti di spesa | Prima del gate esterno; l’analisi locale non richiede chiavi |
+| OpenRouter | Account/chiave per ambiente, credito, modello e provider esatti, prezzi e limiti verificati | Prima del collaudo sintetico a pagamento e dell’attivazione |
 | Bot Telegram avvisi | Bot e destinazione di notifica autorizzata | Fase notifiche; separato dall’account di lettura |
 | Broker e MT5 | Conto demo, server e login esatti, terminale MT5 e utente Windows dedicato | Fase esecuzione e collaudo demo |
 | Server Windows | Accesso amministrativo, account di servizio, storage e backup protetti | Prima del collaudo sul server di destinazione |
-| Dominio e Cloudflare | DNS, tunnel e verifica MFA o soluzione equivalente | Prima dell’accesso esterno; il gate attuale lo rifiuta |
+| Vercel | Due progetti Next.js, domini stabili e variabili server distinte | Per staging e produzione della dashboard |
+| Dominio e Cloudflare | Access dashboard con MFA IdP, Access API con service token, tunnel solo API | Prima dell’accesso esterno; verifica JWT implementata, collaudo reale ancora richiesto |
 
 Il cliente gestisce canali e gruppi da Fonti Telegram nella dashboard. Il team gestisce l’account di lettura e le credenziali applicative. Non richiedere l’elenco definitivo delle fonti per installare il software: possono essere configurate successivamente dal cliente.
 
@@ -31,11 +32,17 @@ Avviare docker compose up --build -d. Il servizio initialize prepara i ruoli, ap
 
 Per gli utenti nominativi eseguire pnpm user:create da un terminale locale interattivo. Il comando accetta ADMIN o VIEWER, non stampa la password e non sovrascrive utenti esistenti. Conservare il bootstrap in modo riservato e assegnare al cliente un accesso personale.
 
+## Tema della dashboard
+
+Il tema neutro Astryx supporta modalità chiara e scura. Il selettore è implementato nella parte superiore delle pagine autenticate e sotto il modulo di accesso, anche su mobile. Il valore iniziale è scuro. La preferenza viene conservata per un anno nel cookie trd-dashboard-theme, limitato all’host e al percorso /, SameSite=Lax e Secure su HTTPS. Contiene soltanto light o dark; valori non riconosciuti ripristinano il tema scuro. La lettura sul server applica la scelta già al primo rendering, senza attendere il caricamento nel browser.
+
+Non richiede variabili d’ambiente, credenziali o modifiche del database. La preferenza appartiene al browser e all’host, non all’utente TRD. Sono verificati in locale cambio in entrambe le direzioni, persistenza al ricaricamento e layout mobile; il collaudo sul dominio finale va incluso nella consegna del deployment.
+
 ## Variabili necessarie per il nucleo applicativo
 
 | Variabili | Preparazione e valore iniziale |
 | --- | --- |
-| APP_ENV e ENVIRONMENT_ID | development e local-paper in locale; identificativo coerente tra processi |
+| APP_ENV e ENVIRONMENT_ID | development/local-paper, staging/staging-paper o production/production-paper; coerenti tra processi |
 | APP_URL e TIMEZONE | http://localhost:3000 ed Europe/Rome; l’origine deve coincidere con quella usata dal browser |
 | TRADING_MODE | paper; altri modi vengono ancora rifiutati dai servizi |
 | ENABLE_AUTOMATION e ENABLE_LIVE_TRADING | false; non abilitarli per provare Telegram |
@@ -48,13 +55,45 @@ Per gli utenti nominativi eseguire pnpm user:create da un terminale locale inter
 | ADMIN_BOOTSTRAP_EMAIL e ADMIN_BOOTSTRAP_PASSWORD | Utente iniziale e password privata generata; usati solo dal bootstrap |
 | AUTH_COOKIE_SECURE | false soltanto nel locale HTTP; in produzione HTTPS è obbligatorio |
 | AUTH_SESSION_TTL_SECONDS e AUTH_IDLE_TTL_SECONDS | 28800 e 1800; massimo otto ore assolute e trenta minuti inattive |
-| AUTH_MFA_REQUIRED | false; impostarlo a true viene rifiutato perché il MFA locale non è implementato |
+| AUTH_MFA_REQUIRED | false in locale; true obbligatorio con REMOTE_ACCESS_MODE=cloudflare |
 | API_PORT, BRIDGE_PORT, DASHBOARD_PORT | 8000, 8001 e 3000; pubblicazione locale su loopback |
 | API_INTERNAL_URL | http://127.0.0.1:8000 in sviluppo host; http://api:8000 in Compose |
 | LOG_LEVEL, LOG_MAX_BYTES e LOG_BACKUP_COUNT | INFO, 10485760 e 10; log strutturati con redazione delle credenziali |
 | REDIS_ENABLED, REDIS_PORT e REDIS_URL | false, 6379 e URL locale; Redis non è necessario alla correttezza |
 
 Ogni URL PostgreSQL deve usare postgresql+psycopg, porta esplicita e il ruolo previsto. Il file .env operatore non viene passato integralmente ai servizi. DATA_DIR e LOG_DIR sono forniti dall’avvio con directory distinte per processo; in produzione devono essere assoluti. ENCRYPTION_KEY è riservata a capacità future del servizio API e non sostituisce la chiave della sessione Telegram.
+
+## Preparare Vercel e gli ambienti remoti
+
+La dashboard e le sue API di inoltro vengono distribuite su Vercel. API Python, PostgreSQL, collector, worker AI, manutenzione e bridge restano persistenti sul VPS Windows. Non usare richieste Vercel o cron Vercel per tenere in vita Telegram e il worker. Il backend è portabile su Linux; MT5 resta una futura componente Windows.
+
+Creare gli ambienti con pnpm env:new --stage staging --output-dir private/staging e la variante production. Vengono generati operator.env con password e chiavi indipendenti, senza stampa e senza sovrascrittura. Completare domini, account e RUNTIME_STATE_DIR assoluto sul server. Non riutilizzare il file .env locale o password di produzione. Per esportare usare pnpm env:export --operator-env private/staging/operator.env --output-dir private/staging/scoped-v1. La directory di export deve essere nuova; applicare ACL prima di usarla su Windows.
+
+Usare istanze PostgreSQL separate: gli stessi ruoli trd_api e trd_ai non possono avere password diverse in due database dello stesso cluster. Separare porte, volumi, directory di stato, utenti, service token, chiavi di inoltro e account OpenRouter. Per Telegram usare account distinti, perché lease in database diversi non coordinano uno stesso account.
+
+Creare un’applicazione Cloudflare Access sull’intero dominio dashboard, con utenti nominativi e MFA IdP obbligatorio. Il JWT umano deve esporre amr o custom.amr come lista contenente mfa. Configurare l’esportazione del claim OIDC/SAML e verificare un token reale senza conservarlo negli artifact. Il semplice OTP email non basta. Creare una seconda applicazione Access API con policy Service Auth e token dedicato a Vercel; nessun Bypass pubblico. Il tunnel raggiunge soltanto l’API amministrativa su loopback e termina con una regola 404. Non pubblicare bridge, PostgreSQL o Redis.
+
+| Variabili remoto e dashboard | Preparazione |
+| --- | --- |
+| REMOTE_ACCESS_MODE | local in sviluppo; cloudflare per staging e produzione |
+| AUTH_COOKIE_SECURE e AUTH_MFA_REQUIRED | true nel remoto; APP_URL deve essere HTTPS e coincidere con il dominio dashboard |
+| CLOUDFLARE_ACCESS_ISSUER e CLOUDFLARE_ACCESS_AUDIENCE | Issuer fisso del team e audience dell’applicazione umana dashboard; solo all’API |
+| DASHBOARD_PROXY_SECRET | Chiave indipendente di almeno 43 caratteri condivisa solo fra API e dashboard dello stesso ambiente |
+| CF_ACCESS_CLIENT_ID e CF_ACCESS_CLIENT_SECRET | Token dell’applicazione API; solo al server dashboard su Vercel |
+| API_INTERNAL_URL | Origine HTTPS protetta dell’API remota, senza percorsi |
+| DASHBOARD_ACCESS_MODE | cloudflare; generato dall’export per il server dashboard |
+| DASHBOARD_DEPLOYMENT_ENV | staging oppure production; generato da APP_ENV |
+| DASHBOARD_ENVIRONMENT_ID e DASHBOARD_PUBLIC_URL | Identificativo del backend e origine esatta della dashboard; generati dall’export |
+| RUNTIME_STATE_DIR | Directory privata assoluta e distinta per ambiente; genera DATA_DIR e LOG_DIR per ruolo |
+| ENABLE_EXPERIMENTAL_COREPACK | 1 nelle impostazioni build Vercel, per usare il pnpm fissato dal repository |
+
+Su Vercel importare il monorepo, Root Directory apps/dashboard, includendo file esterni alla directory per shared-types e preflight. Usare due progetti, Node 24.x e il vercel.json fornito. Trasferire soltanto i campi di .env.dashboard nelle variabili server; mai operator.env, URL PostgreSQL o chiavi Telegram/AI/MT5. Non usare NEXT_PUBLIC_ per questi campi. Production e Preview devono avere valori espliciti; ogni preview usa staging e un dominio/alias stabile approvato. Le preview configurate su production e le richieste dai normali URL casuali vengono rifiutate. Le modifiche alle variabili richiedono un nuovo deployment. [Variabili Vercel](https://vercel.com/docs/environment-variables)
+
+La verifica remota controlla firma, issuer, audience, scadenze, email, soggetto e MFA del JWT originale su ogni richiesta. Next inoltra separatamente la credenziale del servizio e il token umano. Il backend verifica l’ambiente prima di modificare dati; Next verifica l’ambiente della risposta. La sessione TRD richiede la stessa email e lo stesso soggetto autenticato, conservando password, ruoli, CSRF e conferme esistenti. Le preview non possono condividere dati di produzione. Il proxy Cloudflare davanti a Vercel serve alla protezione privata e richiede collaudo di DNS, TLS e cache nella topologia effettiva.
+
+Windows: usare New-NativeServiceTemplates.ps1 -BackendOnly con ServicePrefix, ApiPort, BridgePort, LayoutPath PostgreSQL e directory di ambiente distinti. Crea cinque servizi e non richiede una dashboard locale. Linux: docker-compose.backend.yml esclude dashboard e Redis dall’avvio ordinario e abilita esplicitamente staging/production, conservando pubblicazione su loopback. Il mount data/ai del worker è in sola lettura per le ricevute. Le istruzioni complete sono in docs/DEPLOYMENT_VERCEL.md; generazione dei piani non equivale a installazione Windows o prova di riavvio.
+
+Prima di consegnare il dominio provare MFA reale, ruoli, sessioni scadute, JWT falsi, accesso diretto Vercel, token di servizio errato, ambiente errato, Origin/CSRF, indisponibilità API/database e rotazione delle chiavi. Confermare con una modifica di staging che produzione resti invariata. Il collaudo automatico locale non sostituisce queste prove.
 
 ## Credenziali e collegamento Telegram
 
@@ -94,7 +133,7 @@ Il collector conserva nello stesso file cifrato anche gli aggiornamenti interni 
 
 ## Verifiche prima della consegna al cliente
 
-1. Verificare migrazione 0005_analysis e servizi locali avviati con i propri ruoli.
+1. Verificare migrazione 0005b_remote_openrouter e servizi avviati con i propri ruoli.
 2. Provare accesso, uscita e comportamento VIEWER; nessun lettore deve salvare configurazioni.
 3. Inserire una fonte autorizzata dalla dashboard, verificare conferma e voce nel Registro attività.
 4. Collegare l’account reale e verificare lo stato Lettura verificata con un’osservazione recente.
@@ -118,7 +157,7 @@ Il parser accetta un solo messaggio completo nel formato BUY oppure SELL, simbol
 
 | Variabile | Comportamento implementato |
 | --- | --- |
-| AI_PROVIDER_MODE | Solo mock; altri valori rifiutati all’avvio |
+| AI_PROVIDER_MODE | mock inizialmente; openrouter richiede ricevuta valida, chiave e budget positivi |
 | AI_SIGNAL_MAX_AGE_SECONDS | 900; da 30 a 3600 secondi dalla pubblicazione, ricontrollata alla conclusione |
 | AI_JOB_LEASE_SECONDS | 180; da 10 a 300 secondi, oltre il timeout totale più cinque secondi |
 | AI_HARD_TIMEOUT_SECONDS | 30; da 1 a 120 secondi per l’intero percorso, incluse le alternative |
@@ -136,9 +175,34 @@ La prenotazione preventiva serializza i limiti globali e per agente in PostgreSQ
 
 I test verificano parser, injection, rifiuti, output incompleti, consumi invalidi, spese concorrenti, scadenze, modifiche e permessi su PostgreSQL 17. Per l’uso reale provare in una fonte Telegram autorizzata anche risposte, revisioni e riavvio. Gli esiti del simulatore non validano un modello esterno né certificano una strategia di trading.
 
+## Collaudare e integrare OpenRouter
+
+L’adapter OpenRouter invia soltanto prompt fisso e proposta normalizzata, senza testo Telegram grezzo, strumenti, plugin, redirect o reasoning privato. Fissa modello, un solo provider, schema rigoroso, prezzi massimi, require_parameters=true, data_collection=deny e zdr=true; se un requisito non è disponibile la richiesta fallisce. Verificare anche condizioni e impostazioni dell’account dedicato. Il catalogo deve confermare schema, capacità di token e prezzi correnti. [Routing OpenRouter](https://openrouter.ai/docs/guides/routing/provider-selection)
+
+| Nuove variabili AI | Preparazione |
+| --- | --- |
+| OPENROUTER_API_KEY | Chiave dell’ambiente, solo al worker AI e al probe operatore |
+| OPENROUTER_MANIFEST_PATH | Percorso facoltativo del manifest operativo; il probe richiede --manifest esplicito |
+| OPENROUTER_ACCEPTANCE_PATH | Ricevuta privata valida, visibile dal worker; obbligatoria in modalità openrouter |
+| AI_HARD_MAX_INPUT_TOKENS | 131072; da 1 a 1000000, limite superiore al contesto approvato del modello |
+
+Copiare infra/openrouter/manifest.example.json in una directory privata. L’esempio pubblico è scaduto e va compilato con dati verificati: modello/versione esatti, tag e nome del provider, intero contesto pubblicato come input_token_limit, schema, output massimo, prezzi in USD per milione e versione dei prezzi. Date UTC con validità massima sette giorni. Ogni revisione usa nuovi id e pricing_version; i profili importati sono immutabili e non vengono riabilitati automaticamente.
+
+Con AI_PROVIDER_MODE ancora mock, configurare chiave e i quattro budget server positivi. Eseguire pnpm ai:accept con --operator-env, --manifest, un nuovo --receipt e --allow-paid-probe. Il comando può generare addebiti: controlla i massimi prima della rete, legge il catalogo e invia tre prove sintetiche per modello senza ritentare. Non utilizza messaggi personali. I probe sono fuori dal registro job: per ripetizioni e spesa complessiva mantenere il limite dell’account OpenRouter. Un fallimento non crea una nuova ricevuta e non modifica agenti.
+
+La ricevuta verifica WAIT con assenza di contesto di mercato, schema, provenienza, token e costo. È legata ad ambiente, manifest, impronta della chiave e scadenza, senza includere la chiave. Importarla con pnpm ai:import --operator-env, --receipt e --admin-email di un amministratore attivo. L’import riceve solo la credenziale di migrazione, scrive modelli e audit, e non attiva agenti. Proteggere la ricevuta con ACL: un amministratore del server resta nel perimetro di fiducia.
+
+Solo dopo l’esito positivo configurare AI_PROVIDER_MODE=openrouter e OPENROUTER_ACCEPTANCE_PATH, quindi riavviare il worker. Per Windows usare un percorso assoluto del relativo ambiente; nel contenitore usare /var/trd/acceptance/nome-ricevuta.json, con il file host data/ai/nome-ricevuta.json montato in sola lettura. Non riusare ricevute fra ambienti o dopo una rotazione della chiave. Il runtime ricontrolla scadenza e limiti anche per ogni richiesta.
+
+Dalla dashboard ADMIN i modelli approvati sono disponibili per Analisi di mercato, Valutazione delle decisioni e Verifica critica. Richiedono un costo massimo positivo per richiesta e una conferma; classificazione/interpretazione restano locali e la revisione delle posizioni indisponibile. Il simulatore richiede costo massimo zero. Non inviare dati autorizzati finché non sono stati verificati account, routing privacy, fatturazione reale, timeout/429/402 e qualità degli esiti su fixture approvate.
+
+Ogni tentativo prenota l’intero limite di input e l’output consentito ai prezzi approvati. Il costo contabilizzato è il maggiore fra stima e usage.cost, con costo dichiarato dal provider conservato separatamente e arrotondato verso l’alto a dieci decimali. Se consumo o costo mancano, l’importo rimane impegnato e le alternative si fermano; un costo oltre il preventivo aumenta la trattenuta. Riavvio e cambio periodo non liberano importi sconosciuti. Generation ID e provider permettono una futura riconciliazione; lo sblocco automatico non è implementato. [Contabilizzazione OpenRouter](https://openrouter.ai/docs/cookbook/administration/usage-accounting)
+
+Le istruzioni complete e i comandi sono in docs/OPENROUTER.md. I test automatici non effettuano chiamate a pagamento. Il collaudo sintetico del protocollo non certifica una strategia finanziaria: anche PROPOSE resta consultivo, senza motore di rischio, approvazione esecutiva o ordine.
+
 ## Preparare le integrazioni delle fasi successive
 
-Per l’IA esterna predisporre un account API con progetto e limiti di spesa dedicati. OPENAI_API_KEY è prevista per il primo adapter esterno; una chiave compilata non attiva chiamate. Il contratto Responses usa schema rigoroso, store=false, nessuno strumento e un’origine fissa; oggi accetta soltanto il trasporto di test. Prima di abilitare la rete servono accesso effettivo al modello, manifesti e prezzi attuali verificati, un limite dimostrabile ai token di ingresso, prove di fatturazione e risultati valutati su fixture approvate. La selezione di modelli esterni dalla dashboard è rifiutata. ANTHROPIC_API_KEY, GOOGLE_AI_API_KEY, MOONSHOT_API_KEY e TYPESAFE_API_KEY restano riservati e facoltativi. [Output strutturati OpenAI](https://developers.openai.com/api/docs/guides/structured-outputs)
+OpenRouter è il percorso esterno implementato in questa preparazione. Il precedente contratto OpenAI Responses resta limitato al trasporto di test: OPENAI_API_KEY non abilita chiamate dirette. ANTHROPIC_API_KEY, GOOGLE_AI_API_KEY, MOONSHOT_API_KEY e TYPESAFE_API_KEY restano riservati e facoltativi. Non trasferire queste chiavi sulla dashboard.
 
 Per gli avvisi predisporre successivamente un bot tramite BotFather e una destinazione autorizzata. ALERT_TELEGRAM_BOT_TOKEN, ALERT_TELEGRAM_CHAT_ID e ALERT_COOLDOWN_SECONDS riguardano il futuro servizio notifiche; il bot non sostituisce il collector e la fase attuale non invia messaggi. [Creazione di un bot Telegram](https://core.telegram.org/bots#how-do-i-create-a-bot)
 
@@ -146,7 +210,7 @@ Per MT5 predisporre prima un conto demo e un terminale sul server Windows. Le pa
 
 I campi HARD_MAX_RISK_PER_TRADE, HARD_MAX_DAILY_LOSS, HARD_MAX_TOTAL_OPEN_RISK, HARD_MAX_OPEN_POSITIONS, HARD_MAX_LOTS e HARD_MAX_EFFECTIVE_LEVERAGE rappresentano l’envelope del server. HARD_REQUIRE_STOP_LOSS e HARD_REQUIRE_TAKE_PROFIT devono restare true. HARD_ALLOWED_SYMBOLS, HARD_MAX_SIGNAL_AGE_SECONDS, HARD_MAX_SPREAD_POINTS e HARD_MAX_SLIPPAGE_POINTS sono predisposti per il futuro motore e non costituiscono oggi controlli esecutivi già verificati. Le frazioni 0.01 e 0.03 rappresentano rispettivamente 1% e 3%; non introdurre numeri a virgola mobile nei contratti finanziari.
 
-Per l’accesso esterno predisporre dominio, DNS, Cloudflare Tunnel e Access o un’alternativa con MFA verificato. CLOUDFLARE_ACCESS_ISSUER e CLOUDFLARE_ACCESS_AUDIENCE sono previsti nelle impostazioni API, ma la verifica degli assertion non è implementata. Il software rifiuta attualmente origini remote in produzione: il team deve completare e collaudare il gate prima di pubblicare l’accesso. Non considerare il solo tunnel come prova di autenticazione applicativa.
+La verifica remota Cloudflare è ora implementata come descritto sopra. Domini, IdP, claim MFA, service token, TLS e riavvio reale restano configurazioni e prove del team. Non considerare il solo tunnel come prova di autenticazione applicativa; un percorso remoto alternativo richiede un’implementazione e un collaudo equivalenti.
 
 ## Conservazione manutenzione e backup
 
@@ -165,3 +229,7 @@ Per rigenerare eseguire python infra/scripts/build_guides.py con un interprete c
 9 ottobre 2026 — Prima guida pratica mantenuta nel progetto. Include ruoli e setup esistenti, gestione delle fonti dalla dashboard, accesso locale Telegram, cifratura, recupero a lotti e preparazione delle integrazioni ancora inattive.
 
 11 ottobre 2026 — Aggiunta la preparazione della fase 5 locale: migrazione, parser, istruzioni versionate, attivazioni confermate, limiti del worker, budget e recupero conservativo. Distinti il contratto OpenAI verificato offline e i gate ancora richiesti per rete, rischio e MT5.
+
+12 ottobre 2026 — Aggiunta la fase 5b prima del rischio: Vercel, JWT Access/MFA, sessioni remote legate all’identità, file privati e istanze indipendenti, servizi Windows senza dashboard e percorso Linux. Integrati OpenRouter, collaudo sintetico esplicito, ricevute con scadenza, import immutabile e costo del provider separato. Domini e account reali ancora da collaudare; fase 6 e MT5 restano futuri.
+
+12 ottobre 2026 — Implementati e verificati tema chiaro e scuro con selettore anche all’accesso e su mobile, cookie di preferenza e applicazione del tema nel rendering del server; nessuna nuova variabile o credenziale.

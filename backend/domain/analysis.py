@@ -164,6 +164,7 @@ class ProviderUsage(Contract):
     output_tokens: int = Field(strict=True, ge=0, le=1_000_000)
     cached_tokens: int = Field(default=0, strict=True, ge=0)
     reasoning_tokens: int = Field(default=0, strict=True, ge=0)
+    cost_usd: NonnegativeDecimal | None = None
 
     @model_validator(mode="after")
     def breakdowns_are_subsets(self):

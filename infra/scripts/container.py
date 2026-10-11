@@ -19,8 +19,15 @@ def main() -> None:
     parser.add_argument(
         "service", choices=["initialize", "api", "risk", "ai", "collector", "maintenance"]
     )
-    service = parser.parse_args().service
-    if os.environ.get("APP_ENV") != "development":
+    parser.add_argument("--deployment", action="store_true")
+    args = parser.parse_args()
+    service = args.service
+    if args.deployment:
+        if os.environ.get("APP_ENV") not in {"staging", "production"}:
+            raise SystemExit(
+                "Backend deployment requires an explicit staging or production environment."
+            )
+    elif os.environ.get("APP_ENV") != "development":
         raise SystemExit("This Compose entrypoint is for development only.")
     # Host development and containers share credentials, but not network addresses.
     # This fixed address cannot be supplied by signal, dashboard or AI input.

@@ -10,6 +10,10 @@ param(
     [string]$OutputDirectory,
     [string]$WinSWPath,
     [string]$ExpectedSha256,
+    [ValidatePattern('^[a-z][a-z0-9-]{1,24}$')][string]$ServicePrefix = 'trd',
+    [ValidateRange(1024,65535)][int]$ApiPort = 8000,
+    [ValidateRange(1024,65535)][int]$BridgePort = 8001,
+    [switch]$BackendOnly,
     [switch]$Write,
     [switch]$Json
 )
@@ -17,23 +21,34 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Native.Common.ps1')
 if (-not $ProjectRoot) { $ProjectRoot = Get-TrdProjectRoot }
 if (-not $EnvironmentDirectory) { $EnvironmentDirectory = 'C:\ProgramData\Trd\env' }
-if (-not $DashboardServerPath) { $DashboardServerPath = Join-Path $ProjectRoot 'apps\dashboard\.next\standalone\apps\dashboard\server.js' }
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $PSScriptRoot 'generated' }
-if (-not $NodePath) {
-    $node = Get-Command node.exe -ErrorAction SilentlyContinue
-    $NodePath = if ($node) { $node.Source } else { 'C:\Program Files\nodejs\node.exe' }
+$paths = @($ProjectRoot, $EnvironmentDirectory, $LogDirectory, $OutputDirectory)
+if (-not $BackendOnly) {
+    if (-not $DashboardServerPath) { $DashboardServerPath = Join-Path $ProjectRoot 'apps\dashboard\.next\standalone\apps\dashboard\server.js' }
+    if (-not $NodePath) {
+        $node = Get-Command node.exe -ErrorAction SilentlyContinue
+        $NodePath = if ($node) { $node.Source } else { 'C:\Program Files\nodejs\node.exe' }
+    }
+    $paths += @($NodePath, $DashboardServerPath)
 }
-foreach ($path in @($ProjectRoot, $EnvironmentDirectory, $LogDirectory, $NodePath, $DashboardServerPath, $OutputDirectory)) { Assert-TrdPlainPath $path }
+foreach ($path in $paths) { Assert-TrdPlainPath $path }
 $layout = Get-TrdNativeLayout -Path $LayoutPath
+if (-not $PSBoundParameters.ContainsKey('ApiPort')) { $ApiPort = $layout.ports.admin_api }
+if (-not $PSBoundParameters.ContainsKey('BridgePort')) { $BridgePort = $layout.ports.risk_bridge }
 $pythonPath = Join-Path $ProjectRoot '.venv\Scripts\python.exe'
+$listenerPorts = @($ApiPort, $BridgePort, $layout.ports.postgres)
+if (-not $BackendOnly) { $listenerPorts += $layout.ports.dashboard }
+if (@($listenerPorts | Select-Object -Unique).Count -ne $listenerPorts.Count) { throw 'API, isolated bridge, PostgreSQL and any local dashboard ports must differ.' }
 $definitions = @(
-    @{ id = 'trdapi'; role = 'api'; args = "-m uvicorn apps.api.main:app --host 127.0.0.1 --port $($layout.ports.admin_api) --loop asyncio" },
-    @{ id = 'trdbridge'; role = 'bridge'; args = "-m uvicorn apps.worker.bridge:app --host 127.0.0.1 --port $($layout.ports.risk_bridge) --loop asyncio" },
-    @{ id = 'trdai'; role = 'ai'; args = '-m apps.worker.main --service ai' },
-    @{ id = 'trdcollector'; role = 'telegram'; args = '-m apps.telegram.main' },
-    @{ id = 'trdmaintenance'; role = 'maintenance'; args = '-m apps.worker.main --service maintenance' },
-    @{ id = 'trddashboard'; role = 'dashboard'; args = "--env-file=`"$(Join-Path $EnvironmentDirectory '.env.dashboard')`" `"$DashboardServerPath`"" }
+    @{ id = "${ServicePrefix}api"; role = 'api'; args = "-m uvicorn apps.api.main:app --host 127.0.0.1 --port $ApiPort --loop asyncio --no-access-log" },
+    @{ id = "${ServicePrefix}bridge"; role = 'bridge'; args = "-m uvicorn apps.worker.bridge:app --host 127.0.0.1 --port $BridgePort --loop asyncio --no-access-log" },
+    @{ id = "${ServicePrefix}ai"; role = 'ai'; args = '-m apps.worker.main --service ai' },
+    @{ id = "${ServicePrefix}collector"; role = 'telegram'; args = '-m apps.telegram.main' },
+    @{ id = "${ServicePrefix}maintenance"; role = 'maintenance'; args = '-m apps.worker.main --service maintenance' }
 )
+if (-not $BackendOnly) {
+    $definitions += @{ id = "${ServicePrefix}dashboard"; role = 'dashboard'; args = "--env-file=`"$(Join-Path $EnvironmentDirectory '.env.dashboard')`" `"$DashboardServerPath`"" }
+}
 $services = foreach ($definition in $definitions) {
     [pscustomobject]@{
         id = $definition.id
@@ -42,7 +57,7 @@ $services = foreach ($definition in $definitions) {
         env_file = Join-Path $EnvironmentDirectory ".env.$($definition.role)"
         executable = if ($definition.role -eq 'dashboard') { $NodePath } else { $pythonPath }
         arguments = $definition.args
-        depends_on = if ($definition.role -eq 'dashboard') { 'trdapi' } else { $layout.postgres_service }
+        depends_on = if ($definition.role -eq 'dashboard') { "${ServicePrefix}api" } else { $layout.postgres_service }
         log_path = Join-Path $LogDirectory $definition.id
     }
 }
@@ -51,7 +66,9 @@ if ($Write) {
     if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) { throw 'Artifact writing requires Windows; use preview for planning.' }
     if (-not $WinSWPath -or -not $ExpectedSha256) { throw '-Write requires WinSWPath and a trusted independently approved ExpectedSha256 for stable WinSW 2.12.0.' }
     $verified = & (Join-Path $PSScriptRoot 'Test-WinSWArtifact.ps1') -Path $WinSWPath -ExpectedSha256 $ExpectedSha256
-    foreach ($path in @($pythonPath, $NodePath, $DashboardServerPath) + @($services.env_file)) {
+    $requiredArtifacts = @($pythonPath)
+    if (-not $BackendOnly) { $requiredArtifacts += @($NodePath, $DashboardServerPath) }
+    foreach ($path in $requiredArtifacts + @($services.env_file)) {
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Required artifact/env file is missing: $path" }
     }
     if (Test-Path -LiteralPath $OutputDirectory) { throw 'OutputDirectory already exists. Choose a new review directory; existing files are never overwritten.' }
@@ -73,7 +90,7 @@ if ($Write) {
 <?xml version="1.0" encoding="utf-8"?>
 <service>
   <id>$($service.id)</id>
-  <name>TRD $($service.role) (Phase 1 foundation)</name>
+  <name>TRD $($service.role) ($ServicePrefix)</name>
   <description>Trading disabled. Review identities, ACLs and recovery before deployment.</description>
   <executable>$exe</executable>
   <arguments>$arguments</arguments>
@@ -108,6 +125,8 @@ $result = [pscustomobject]@{
     phase = 1
     dry_run = (-not $Write)
     artifacts_written = [bool]$Write
+    backend_only = [bool]$BackendOnly
+    service_prefix = $ServicePrefix
     output_directory = $OutputDirectory
     pinned_winsw = '2.12.0 (x64; trusted SHA256 required for -Write)'
     services = @($services)

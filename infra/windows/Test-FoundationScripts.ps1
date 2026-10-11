@@ -34,6 +34,14 @@ try {
     $preview = & (Join-Path $PSScriptRoot 'New-NativeServiceTemplates.ps1') -EnvironmentDirectory $temporary -LogDirectory $temporary -NodePath (Join-Path $temporary 'node.exe') -DashboardServerPath (Join-Path $temporary 'server.js') -OutputDirectory $previewDirectory -Json | ConvertFrom-Json
     if (-not $preview.dry_run -or $preview.artifacts_written -or $preview.installed -or (Test-Path -LiteralPath $previewDirectory)) { throw 'Service preview performed an unauthorized mutation.' }
     if ($preview.services.Count -ne 6 -or @($preview.services.account | Select-Object -Unique).Count -ne 6 -or @($preview.services.env_file | Select-Object -Unique).Count -ne 6) { throw 'Runtime service isolation is missing from the preview.' }
+    $remote = & (Join-Path $PSScriptRoot 'New-NativeServiceTemplates.ps1') -BackendOnly -ServicePrefix trdstaging -ApiPort 8010 -BridgePort 8011 -EnvironmentDirectory $temporary -LogDirectory $temporary -OutputDirectory $previewDirectory -Json | ConvertFrom-Json
+    if ($remote.services.Count -ne 5 -or @($remote.services | Where-Object role -eq 'dashboard').Count -ne 0 -or -not $remote.backend_only) { throw 'Vercel backend preview still requires a local dashboard.' }
+    if (@($remote.services | Where-Object { $_.id -notlike 'trdstaging*' }).Count -ne 0 -or $remote.services[0].arguments -notmatch '--port 8010') { throw 'Staging identities or ports are not independent.' }
+    foreach ($ports in @(@{ApiPort=8010;BridgePort=8010}, @{ApiPort=$layout.ports.postgres;BridgePort=8011})) {
+        $rejected = $false
+        try { $null = & (Join-Path $PSScriptRoot 'New-NativeServiceTemplates.ps1') -BackendOnly -EnvironmentDirectory $temporary -LogDirectory $temporary -OutputDirectory $previewDirectory @ports } catch { $rejected = $true }
+        if (-not $rejected) { throw 'Conflicting backend listener ports were accepted.' }
+    }
     $blocked = $false
     try { $null = & (Join-Path $PSScriptRoot 'New-NativeServiceTemplates.ps1') -EnvironmentDirectory $temporary -LogDirectory $temporary -NodePath (Join-Path $temporary 'node.exe') -DashboardServerPath (Join-Path $temporary 'server.js') -OutputDirectory $previewDirectory -Write } catch { $blocked = $true }
     if (-not $blocked -or (Test-Path -LiteralPath $previewDirectory)) { throw 'Artifact writing was not blocked without verified WinSW.' }

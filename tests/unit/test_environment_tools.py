@@ -688,7 +688,7 @@ def test_compose_runtime_scopes_and_loopback_publishing():
         )
     assert set(services["dashboard"]["environment"]) == {"API_INTERNAL_URL", "HOSTNAME", "PORT"}
     assert services["initialize"]["restart"] == "no"
-    assert services["worker"]["environment"]["AI_PROVIDER_MODE"] == "mock"
+    assert services["worker"]["environment"]["AI_PROVIDER_MODE"] == "${AI_PROVIDER_MODE:-mock}"
     assert services["telegram"]["environment"]["TELEGRAM_ENABLED"] == "${TELEGRAM_ENABLED:-false}"
     for configuration in services.values():
         assert "env_file" not in configuration

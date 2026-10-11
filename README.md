@@ -1,5 +1,14 @@
 # Autonomous trading orchestration platform
 
+Preparation before phase 6 adds Vercel packaging, independent environments,
+Cloudflare Access/MFA identity checks and gated OpenRouter integration. The persistent
+Python backend stays on Windows and can also deploy on Linux. See
+[Vercel deployment](docs/DEPLOYMENT_VERCEL.md) and [OpenRouter acceptance](docs/OPENROUTER.md).
+The current installation retains mock, zero AI budgets and disabled trading; real
+domain/account acceptance remains required.
+The completed local checks and remaining deployment gates are recorded in
+[Phase 5b validation](docs/PHASE_5B_VALIDATION.md).
+
 Phase 5 adds strict message classification/parsing, durable offline advisory analysis,
 confirmed mock-agent activation, spend reservations and Italian analysis/detail pages.
 The Responses wire adapter is tested with a fake transport; external AI remains disabled.
@@ -8,8 +17,8 @@ bounded read-only collector, with durable message revisions, recovery and accoun
 fencing. The Italian dashboard retains ADMIN/VIEWER roles and confirmed changes.
 Telegram collection requires operator credentials/enrollment and remains disabled
 in the current local installation. Trading, external AI and broker commands remain
-disabled. Keep this deployment on loopback;
-external production access still requires the later verified MFA/security gate.
+disabled in the current installation. Remote deployment requires the documented real
+MFA/domain acceptance. No public deployment has been performed in this workspace.
 
 ## Local boot
 
@@ -86,6 +95,8 @@ git diff --exit-code -- packages/shared-types
 | `infra` | Container packaging, operator tasks and Windows previews |
 | `tests` | Configuration, security boundary and PostgreSQL verification |
 
+- [Vercel dashboard and remote environments](docs/DEPLOYMENT_VERCEL.md)
+- [OpenRouter setup and acceptance](docs/OPENROUTER.md)
 - [Environment and secret scoping](docs/ENVIRONMENT.md)
 - [Italian customer guide](docs/cliente/GUIDA_CLIENTE.docx) and [practical team guide](docs/team/GUIDA_PREPARAZIONE.docx), maintained alongside their Markdown sources
 - [Architecture](docs/ARCHITECTURE.md), [threat model](docs/THREAT_MODEL.md) and [decisions](docs/adr/README.md)
@@ -94,4 +105,6 @@ git diff --exit-code -- packages/shared-types
 - [Dashboard implementation notes](apps/dashboard/README.md)
 - [Phase 0 approval record](docs/PHASE_0_APPROVAL.md)
 
-The simulator entrypoint reports liveness only; it does not simulate execution yet. The deterministic risk engine, external AI acceptance, MT5 EA and broker recovery remain later gates. Windows native services, MT5, TLS, real broker behavior and reboot recovery require tests on the target Windows host.
+The simulator entrypoint reports liveness only. Risk, MT5 EA and broker recovery remain
+later gates. Real OpenRouter acceptance, native Windows services, TLS and reboot
+recovery require tests in the target environment.

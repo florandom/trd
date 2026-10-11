@@ -70,7 +70,15 @@ authenticate its role and serialize legitimate concurrent workers; they do not d
 that process's budget arguments against hostile code holding its own credentials.
 Risk/execution authority remains separate.
 
-## OpenAI and remaining gates
+## OpenRouter preparation and remaining gates
+
+Preparation before phase 6 adds OpenRouter Chat Completions, explicit synthetic
+acceptance, expiring environment/key-bound receipts and immutable registry import.
+Mock and zero budgets remain defaults. Input reserves the approved full context;
+settlement stores the provider cost separately and accounts conservatively for the
+greater of that amount and the token-price estimate. Unknown/excess costs hold spend
+and stop fallback. Analyst/decision/critic can use accepted models; classifier/parser
+remain local. No result gains financial authority. [OpenRouter contract](OPENROUTER.md)
 
 The Responses adapter accepts only `httpx.MockTransport`; no runtime setting or key
 enables network calls. Existing httpx is used directly, without an SDK or hidden SDK
@@ -90,7 +98,7 @@ broker and external MFA acceptance remain separate gates.
 ## Dashboard and operation
 
 Analisi messaggi shows outcomes, Italian reasons and proposal links. Signal detail
-shows immutable prices and agent attempts. ADMIN enables offline agents using the
+shows immutable prices and agent attempts. ADMIN enables configured agents using the
 existing session/payload/version-bound confirmation; the reviewed prompt version 2
 is explicitly shown. Bootstrap appends those prompts and preserves prior configs.
 VIEWER remains read-only; sources remain dashboard-managed. Cost rows distinguish

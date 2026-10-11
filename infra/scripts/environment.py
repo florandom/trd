@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import secrets
@@ -34,6 +35,8 @@ COMMON = {
 }
 ROLE_FIELDS = {
     "api": {
+        "REMOTE_ACCESS_MODE",
+        "DASHBOARD_PROXY_SECRET",
         "AUTH_COOKIE_SECURE",
         "AUTH_SESSION_TTL_SECONDS",
         "AUTH_IDLE_TTL_SECONDS",
@@ -60,6 +63,10 @@ ROLE_FIELDS = {
         "TELEGRAM_SIGNAL_MAX_AGE_SECONDS",
     },
     "ai": {
+        "OPENROUTER_API_KEY",
+        "OPENROUTER_MANIFEST_PATH",
+        "OPENROUTER_ACCEPTANCE_PATH",
+        "AI_HARD_MAX_INPUT_TOKENS",
         "OPENAI_API_KEY",
         "ANTHROPIC_API_KEY",
         "GOOGLE_AI_API_KEY",
@@ -213,10 +220,88 @@ def runtime_environment(service: str, values: dict[str, str]) -> dict[str, str]:
     result.update({key: values[key] for key in fields if key in values})
     result["DATABASE_URL"] = values[ROLE_URLS[service][0]]
     result["SERVICE_IDENTITY"] = service
-    result["DATA_DIR"] = str(ROOT / "data" / service)
-    result["LOG_DIR"] = str(ROOT / "logs" / service)
+    state = values.get("RUNTIME_STATE_DIR")
+    state_root = Path(state) if state else ROOT
+    if state and not state_root.is_absolute():
+        raise ValueError("RUNTIME_STATE_DIR must be absolute")
+    if values.get("APP_ENV") in {"staging", "production"} and not state:
+        raise ValueError("Remote deployments require an independent RUNTIME_STATE_DIR")
+    result["DATA_DIR"] = str(state_root / "data" / service)
+    result["LOG_DIR"] = str(state_root / "logs" / service)
     result["PYTHONUNBUFFERED"] = "1"
     return result
+
+
+def prepare_deployment(stage: str, destination: Path) -> Path:
+    if stage not in {"staging", "production"} or destination.exists():
+        raise ValueError("Choose staging or production and a new private directory")
+    destination.mkdir(mode=0o700, parents=True)
+    target = destination / "operator.env"
+    source = (ROOT / (".env." + stage + ".example")).read_text(encoding="utf-8")
+    source = source.replace("APP_ENV=" + stage, "APP_ENV=development", 1)
+    source = source.replace(
+        "RUNTIME_STATE_DIR=REPLACE_WITH_ABSOLUTE_PRIVATE_STATE_DIRECTORY",
+        "RUNTIME_STATE_DIR=" + json.dumps(str(destination.resolve() / "state"), ensure_ascii=False),
+    )
+    with os.fdopen(
+        os.open(target, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600), "w", encoding="utf-8"
+    ) as output:
+        output.write(source)
+    prepare_environment(target)
+    source = target.read_text(encoding="utf-8").replace(
+        "APP_ENV=development", "APP_ENV=" + stage, 1
+    )
+    target.write_text(source, encoding="utf-8")
+    return target
+
+
+def dashboard_environment(values: dict[str, str]) -> dict[str, str]:
+    fields = {
+        "API_INTERNAL_URL",
+        "DASHBOARD_PROXY_SECRET",
+        "CF_ACCESS_CLIENT_ID",
+        "CF_ACCESS_CLIENT_SECRET",
+    }
+    result = {key: value for key, value in os.environ.items() if key in OS_FIELDS}
+    result.update({key: values[key] for key in fields if key in values})
+    result.update(
+        DASHBOARD_ACCESS_MODE=values.get("REMOTE_ACCESS_MODE", "local"),
+        DASHBOARD_ENVIRONMENT_ID=values["ENVIRONMENT_ID"],
+        DASHBOARD_DEPLOYMENT_ENV=values.get("APP_ENV", "development"),
+        DASHBOARD_PUBLIC_URL=values.get("APP_URL", "http://localhost:3000"),
+        NEXT_TELEMETRY_DISABLED="1",
+    )
+    return result
+
+
+def export_environments(values: dict[str, str], destination: Path) -> None:
+    """Generate a new, private directory. Never print credentials or overwrite files."""
+    from backend.domain.config import AiSettings, ApiSettings, BridgeSettings, CollectorSettings
+
+    projections = {role: runtime_environment(role, values) for role in ROLE_URLS}
+    projections["dashboard"] = dashboard_environment(values)
+    classes = {
+        "api": ApiSettings,
+        "ai": AiSettings,
+        "risk": BridgeSettings,
+        "collector": CollectorSettings,
+    }
+    for role, contract in classes.items():
+        contract.model_validate({key.lower(): value for key, value in projections[role].items()})
+    if destination.exists():
+        raise ValueError("Export directory already exists; choose a new private review directory")
+    destination.mkdir(mode=0o700, parents=True)
+    for role, projection in projections.items():
+        filename = {"collector": "telegram", "risk": "bridge"}.get(role, role)
+        path = destination / (".env." + filename)
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as output:
+            for key, value in sorted(projection.items()):
+                if key not in OS_FIELDS:
+                    # Quoted dotenv values preserve paths, dollar signs and backslashes.
+                    if any(char in value for char in ("\n", "\r", "\0")):
+                        raise ValueError("Multiline environment values are unsupported")
+                    output.write(key + "=" + json.dumps(value, ensure_ascii=False) + "\n")
 
 
 def postgres_dsn(url: str) -> str:

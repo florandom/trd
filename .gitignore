@@ -12,6 +12,7 @@
 *.p12
 logs/
 data/
+private/
 node_modules/
 .venv/
 __pycache__/

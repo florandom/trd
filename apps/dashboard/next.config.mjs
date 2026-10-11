@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 export default stylexPlugin({
   rsOptions: {unstable_moduleResolution: {type: 'commonJS'}},
 })({
-  output: 'standalone',
+  ...(process.env.VERCEL === '1' ? {} : {output: 'standalone'}),
   outputFileTracingRoot: fileURLToPath(new URL('../../', import.meta.url)),
   transpilePackages: ['@trd/shared-types'],
   poweredByHeader: false,

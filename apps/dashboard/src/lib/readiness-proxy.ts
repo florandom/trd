@@ -1,4 +1,5 @@
 import {parseReadiness} from './readiness';
+import {type Deployment, verifyEnvironment} from './deployment';
 
 const PROXY_ERROR = {error: 'status_unavailable'} as const;
 const MAX_HEALTH_BODY_CHARACTERS = 4_096;
@@ -16,6 +17,7 @@ export function readinessEndpoint(internalOrigin: string): URL {
 export async function proxyReadiness(
   internalOrigin: string,
   fetcher: typeof fetch = fetch,
+  transport?: {headers: Headers; config: Deployment},
 ): Promise<Response> {
   const headers = {'Cache-Control': 'no-store'};
   try {
@@ -23,8 +25,9 @@ export async function proxyReadiness(
       cache: 'no-store',
       redirect: 'error',
       signal: AbortSignal.timeout(2_000),
-      headers: {Accept: 'application/json'},
+      headers: transport?.headers ?? {Accept: 'application/json'},
     });
+    if (transport) verifyEnvironment(upstream, transport.config);
     if (upstream.status !== 200 && upstream.status !== 503) {
       return Response.json(PROXY_ERROR, {status: 503, headers});
     }

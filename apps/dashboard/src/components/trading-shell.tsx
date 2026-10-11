@@ -37,6 +37,7 @@ import {
   ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
 import {api, type SessionUser} from '@/lib/dashboard-api';
+import {DashboardThemeToggle} from '@/components/dashboard-theme';
 const UserContext = createContext<SessionUser | null>(null);
 export function useSession() {
   const user = useContext(UserContext);
@@ -200,6 +201,7 @@ export default function TradingShell({
                   <Text type="supporting" color="secondary">
                     AMBIENTE LOCALE
                   </Text>
+                  <DashboardThemeToggle />
                 </HStack>
                 {error && <Banner status="error" title={error} />}
                 {children}

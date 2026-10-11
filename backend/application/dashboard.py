@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import secrets
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from functools import cached_property
 from hashlib import sha256
 from hmac import compare_digest
@@ -22,6 +22,7 @@ from sqlalchemy.exc import DBAPIError
 from backend.domain.config import ApiSettings
 from backend.domain.contracts import AgentConfiguration, RiskPolicy
 from backend.domain.telegram import SourceConfiguration
+from backend.infrastructure.access import AccessIdentity
 from backend.infrastructure.database import create_database_engine
 
 HASHER = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=1, type=Type.ID)
@@ -127,7 +128,12 @@ class DashboardService:
         origin: str | None,
         peer: str,
         previous: str | None,
+        access_identity: AccessIdentity | None = None,
     ) -> tuple[str, dict]:
+        if self.settings.remote_access_mode == "cloudflare" and (
+            access_identity is None or access_identity.email != email
+        ):
+            raise HTTPException(403, "REMOTE_IDENTITY_MISMATCH")
         self.origin(origin)
         self.csrf(token, csrf)
         self.throttle([("login-ip:" + peer, 30), ("login-account:" + email, 5)])
@@ -175,13 +181,14 @@ class DashboardService:
                     )
                 connection.execute(
                     text("""INSERT INTO public.sessions
-                    (environment_id,id,user_id,token_hash,expires_at,last_seen_at)
+                    (environment_id,id,user_id,token_hash,expires_at,last_seen_at,external_subject_hash)
                     VALUES(:environment,gen_random_uuid(),:user,:token,
-                     clock_timestamp()+make_interval(secs=>:ttl),clock_timestamp())"""),
+                     clock_timestamp()+make_interval(secs=>:ttl),clock_timestamp(),:subject)"""),
                     self.parameters(
                         user=user["id"],
                         token=token_hash(raw),
                         ttl=self.settings.auth_session_ttl_seconds,
+                        subject=access_identity.subject_hash if access_identity else None,
                     ),
                 )
         if not valid:
@@ -193,9 +200,11 @@ class DashboardService:
             "csrf_token": csrf_token(raw),
         }
 
-    def authenticate(self, raw: str | None) -> dict:
+    def authenticate(self, raw: str | None, access_identity: AccessIdentity | None = None) -> dict:
         if not valid_token(raw):
             raise HTTPException(401, "AUTH_REQUIRED")
+        if self.settings.remote_access_mode == "cloudflare" and access_identity is None:
+            raise HTTPException(401, "REMOTE_ACCESS_REQUIRED")
         with self.engine.begin() as connection:
             row = (
                 connection.execute(
@@ -204,9 +213,14 @@ class DashboardService:
                 WHERE s.user_id=u.id AND u.active AND s.environment_id=:environment
                  AND s.token_hash=:token AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp()
                  AND s.last_seen_at>clock_timestamp()-make_interval(secs=>:idle)
+                 AND s.external_subject_hash IS NOT DISTINCT FROM :subject
+                 AND (CAST(:email AS text) IS NULL OR u.email=:email)
                 RETURNING u.id,u.email,u.role,s.expires_at,s.last_seen_at"""),
                     self.parameters(
-                        token=token_hash(raw), idle=self.settings.auth_idle_ttl_seconds
+                        token=token_hash(raw),
+                        idle=self.settings.auth_idle_ttl_seconds,
+                        subject=access_identity.subject_hash if access_identity else None,
+                        email=access_identity.email if access_identity else None,
                     ),
                 )
                 .mappings()
@@ -221,18 +235,30 @@ class DashboardService:
             + timedelta(seconds=self.settings.auth_idle_ttl_seconds),
         }
 
-    def admin(self, raw: str | None, csrf: str | None, origin: str | None) -> dict:
+    def admin(
+        self,
+        raw: str | None,
+        csrf: str | None,
+        origin: str | None,
+        access_identity: AccessIdentity | None = None,
+    ) -> dict:
         self.origin(origin)
         self.csrf(raw, csrf)
-        user = self.authenticate(raw)
+        user = self.authenticate(raw, access_identity)
         if user["role"] != "ADMIN":
             raise HTTPException(403, "ADMIN_REQUIRED")
         return user
 
-    def logout(self, raw: str, csrf: str | None, origin: str | None) -> None:
+    def logout(
+        self,
+        raw: str,
+        csrf: str | None,
+        origin: str | None,
+        access_identity: AccessIdentity | None = None,
+    ) -> None:
         self.origin(origin)
         self.csrf(raw, csrf)
-        user = self.authenticate(raw)
+        user = self.authenticate(raw, access_identity)
         with self.engine.begin() as connection:
             connection.execute(
                 text("""UPDATE public.sessions SET revoked_at=clock_timestamp()
@@ -263,7 +289,11 @@ class DashboardService:
         if collection not in views:
             raise HTTPException(404, "NOT_FOUND")
         view, order = views[collection]
-        where = "" if collection == "models" else "WHERE environment_id=:environment"
+        where = (
+            "WHERE accepted_environment_id IS NULL OR accepted_environment_id=:environment"
+            if collection == "models"
+            else "WHERE environment_id=:environment"
+        )
         with self.engine.begin() as connection:
             rows = (
                 connection.execute(
@@ -366,15 +396,34 @@ class DashboardService:
                 if (
                     (config.enabled and agent["name"] == "POSITION_REVIEW_AGENT")
                     or (config.enabled and config.prompt_version != 2)
-                    or config.max_cost_usd != 0
                     or config.max_output_tokens > 4096
                 ):
                     raise ValueError("capability unavailable")
                 models = self.rows("models")["rows"]
+                selected_ids = (config.primary_model_id, *config.fallback_model_ids)
+                if config.max_cost_usd != 0 and not any(
+                    m["id"] in selected_ids and m["provider"] == "openrouter" for m in models
+                ):
+                    raise ValueError("local models require a zero cost limit")
                 for identifier in (config.primary_model_id, *config.fallback_model_ids):
                     if not any(
                         m["id"] == identifier
-                        and m["provider"] == "mock"
+                        and (
+                            m["provider"] == "mock"
+                            or (
+                                m["provider"] == "openrouter"
+                                and agent["name"] not in {"SIGNAL_CLASSIFIER", "SIGNAL_PARSER"}
+                                and m.get("accepted_environment_id") == self.environment
+                                and (
+                                    not config.enabled
+                                    or (
+                                        m.get("accepted_until") is not None
+                                        and m["accepted_until"] > datetime.now(UTC)
+                                        and config.max_cost_usd > 0
+                                    )
+                                )
+                            )
+                        )
                         and m["enabled"]
                         and m["schema_version"] == config.required_schema_version
                         and m["max_output_tokens"] >= config.max_output_tokens
@@ -382,6 +431,7 @@ class DashboardService:
                     ):
                         raise ValueError("model unavailable")
                 payload["value"] = config.model_dump(mode="json")
+                payload["value"]["max_cost_usd"] = format(config.max_cost_usd, "f")
             else:
                 raise ValueError("unsupported change")
         except (ValueError, StopIteration, TypeError):

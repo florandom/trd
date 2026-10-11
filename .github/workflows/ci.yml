@@ -54,6 +54,19 @@ jobs:
         run: pnpm --filter @trd/dashboard test
       - name: Build dashboard production artifact
         run: pnpm --filter @trd/dashboard build
+      - name: Check Vercel staging build with synthetic server configuration
+        env:
+          VERCEL: '1'
+          VERCEL_ENV: preview
+          DASHBOARD_ACCESS_MODE: cloudflare
+          DASHBOARD_DEPLOYMENT_ENV: staging
+          DASHBOARD_ENVIRONMENT_ID: staging-paper
+          DASHBOARD_PUBLIC_URL: https://dashboard-staging.example.test
+          API_INTERNAL_URL: https://api-staging.example.test
+          DASHBOARD_PROXY_SECRET: ci-test-only-proxy-value-never-a-production-secret
+          CF_ACCESS_CLIENT_ID: ci-test-only-service-client
+          CF_ACCESS_CLIENT_SECRET: ci-test-only-service-secret
+        run: pnpm --filter @trd/dashboard build:vercel
       - name: Regenerate API schema and types with no drift
         run: |
           pnpm api:generate

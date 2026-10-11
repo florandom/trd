@@ -72,6 +72,7 @@ class SessionRecord(ScopedRecord):
     expires_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
     last_seen_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
     revoked_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+    external_subject_hash: Mapped[str | None] = mapped_column(String(64))
 
 
 class TradingAccount(ScopedRecord):
@@ -233,7 +234,7 @@ class ModelRegistry(Base):
         UniqueConstraint("provider", "model_name", "pricing_version"),
         CheckConstraint("input_price_per_million >= 0 AND output_price_per_million >= 0"),
         CheckConstraint("schema_version >= 1 AND max_output_tokens > 0"),
-        choice("provider", "mock openai anthropic google moonshot typesafe"),
+        choice("provider", "mock openrouter openai anthropic google moonshot typesafe"),
         CheckConstraint("currency = 'USD'"),
     )
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -245,6 +246,11 @@ class ModelRegistry(Base):
     input_price_per_million: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
     output_price_per_million: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
     pricing_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    input_token_limit: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    provider_slug: Mapped[str | None] = mapped_column(String(64))
+    provider_label: Mapped[str | None] = mapped_column(String(96))
+    accepted_environment_id: Mapped[str | None] = mapped_column(String(64))
+    accepted_until: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
     currency: Mapped[str] = mapped_column(String(3), nullable=False, server_default="USD")
 
 
@@ -356,6 +362,7 @@ class AIUsage(ScopedRecord):
     output_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
     estimated_cost_usd: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
     pricing_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    reported_cost_usd: Mapped[Decimal | None] = mapped_column(MONEY)
     usage_known: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
 
 

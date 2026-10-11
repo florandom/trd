@@ -10,6 +10,9 @@ const ERRORS: Record<string, string> = {
   INVALID_CREDENTIALS: 'Email o password non corretti.',
   LOGIN_THROTTLED: 'Troppi tentativi. Attendi qualche minuto e riprova.',
   AUTH_REQUIRED: 'La sessione è terminata. Accedi di nuovo.',
+  REMOTE_ACCESS_REQUIRED: 'Accedi dall’indirizzo protetto e completa la verifica dell’identità.',
+  REMOTE_IDENTITY_MISMATCH: 'Usa l’email autorizzata per questo accesso.',
+  ENVIRONMENT_MISMATCH: 'L’ambiente richiesto non corrisponde a quello configurato.',
   ADMIN_REQUIRED: 'Questa modifica richiede un amministratore.',
   CSRF_REJECTED: 'La conferma è scaduta. Aggiorna la pagina e riprova.',
   ORIGIN_REJECTED:

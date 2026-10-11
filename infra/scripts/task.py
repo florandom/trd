@@ -18,6 +18,9 @@ if str(ROOT) not in sys.path:
 
 from infra.scripts.environment import (  # noqa: E402
     OS_FIELDS,
+    dashboard_environment,
+    export_environments,
+    prepare_deployment,
     prepare_environment,
     read_environment,
     runtime_environment,
@@ -182,8 +185,7 @@ def dev(values: dict[str, str]) -> None:
                     **options,
                 )
             )
-        frontend = operator_environment(values, {"API_INTERNAL_URL"})
-        frontend["NEXT_TELEMETRY_DISABLED"] = "1"
+        frontend = dashboard_environment(values)
         command = [
             executable("pnpm"),
             "--filter",
@@ -282,6 +284,10 @@ def main() -> int:
             "retention",
             "user-create",
             "telegram-enroll",
+            "export-env",
+            "new-env",
+            "openrouter-accept",
+            "openrouter-import",
         ],
     )
     parser.add_argument(
@@ -289,11 +295,22 @@ def main() -> int:
         action="store_true",
         help="Read explicit one-shot container environment rather than local operator file",
     )
-    args = parser.parse_args()
+    parser.add_argument("--operator-env", type=Path)
+    parser.add_argument("--output-dir", type=Path)
+    parser.add_argument("--stage", choices=["staging", "production"])
+    args, remainder = parser.parse_known_args()
+    if remainder and args.task not in {"openrouter-accept", "openrouter-import"}:
+        parser.error("Unexpected task arguments")
     try:
         if args.task == "init-env":
-            path = prepare_environment()
+            path = prepare_environment(args.operator_env)
             print(f"Private local environment prepared: {path.name}. Credentials were not printed.")
+            return 0
+        if args.task == "new-env":
+            if not args.stage or args.output_dir is None:
+                raise ValueError("Provide --stage and a new private --output-dir")
+            prepare_deployment(args.stage, args.output_dir)
+            print("Ambiente privato creato. Completare domini e Cloudflare prima dell’avvio.")
             return 0
         if args.task == "check":
             check()
@@ -304,8 +321,30 @@ def main() -> int:
         if args.task == "generate-api":
             generate_api()
             return 0
-        values = dict(os.environ) if args.from_process else read_environment()
-        if args.task == "provision-db":
+        values = (
+            dict(os.environ)
+            if args.from_process
+            else read_environment(args.operator_env)
+            if args.operator_env
+            else read_environment()
+        )
+        if args.task == "export-env":
+            if args.output_dir is None:
+                raise ValueError("A new private --output-dir is required")
+            export_environments(values, args.output_dir)
+            print("File separati per servizio creati. Credenziali non stampate.")
+        elif args.task in {"openrouter-accept", "openrouter-import"}:
+            action = args.task.removeprefix("openrouter-")
+            scoped = (
+                runtime_environment("ai", values)
+                if action == "accept"
+                else operator_environment(values, {"MIGRATION_DATABASE_URL", "ENVIRONMENT_ID"})
+            )
+            run(
+                [sys.executable, "-m", "infra.scripts.openrouter_operator", action, *remainder],
+                scoped,
+            )
+        elif args.task == "provision-db":
             provision(values)
         elif args.task == "migrate":
             migrate(values)

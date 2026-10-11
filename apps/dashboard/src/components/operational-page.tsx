@@ -35,7 +35,7 @@ export const PAGES: Record<string, {title: string; description: string}> = {
   agents: {
     title: 'Agenti IA',
     description:
-      'Configura l’analisi con il simulatore locale. I fornitori esterni e la revisione delle posizioni restano disabilitati.',
+      'Configura il simulatore locale o i modelli OpenRouter approvati dal team. La revisione delle posizioni non è ancora disponibile.',
   },
   models: {
     title: 'Registro modelli',
@@ -206,7 +206,7 @@ export default function OperationalPage({section}: {section: string}) {
       )),
       column('enabled', 'Stato', (r) =>
         status(
-          r.enabled ? 'Analisi locale attivata' : 'Disattivato'
+          r.enabled ? 'Agente attivo' : 'Disattivato'
         )
       ),
       column('primary_model_id', 'Modello'),
@@ -411,7 +411,11 @@ export default function OperationalPage({section}: {section: string}) {
           <Text>{String(r.output_tokens)} in uscita</Text>
         </VStack>
       )),
-      column('estimated_cost_usd', 'Stimato (USD)'),
+      {key: 'estimated_cost_usd', header: 'Costo (USD)', width: proportional(1),
+        renderCell: (r: Row) => <VStack gap={1}>
+          <Text>Budget: {String(r.estimated_cost_usd)}</Text>
+          <Text color="secondary">Fornitore: {r.reported_cost_usd == null ? 'Non confermato' : String(r.reported_cost_usd)}</Text>
+        </VStack>},
       column('reserved_usd', 'Prenotato (USD)'),
       column('usage_known', 'Consumo', (r) => (
         <VStack gap={1}>

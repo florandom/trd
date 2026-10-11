@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, SecretStr, field_validator
 
 from backend.application.dashboard import COOKIE, LOGIN_COOKIE, DashboardService
+from backend.infrastructure.access import AccessIdentity
 
 
 class Input(BaseModel):
@@ -74,15 +75,21 @@ def dashboard_router(service: DashboardService) -> APIRouter:
     def raw(request: Request):
         return request.cookies.get(COOKIE)
 
+    def identity(request: Request) -> AccessIdentity | None:
+        return getattr(request.state, "access_identity", None)
+
     def authenticated(request: Request) -> dict:
-        return service.authenticate(raw(request))
+        return service.authenticate(raw(request), identity(request))
 
     def administrator(request: Request) -> dict:
         return service.admin(
-            raw(request), request.headers.get("X-CSRF-Token"), request.headers.get("Origin")
+            raw(request), request.headers.get("X-CSRF-Token"), request.headers.get("Origin"),
+            identity(request),
         )
 
     def peer(request: Request) -> str:
+        if identity(request):
+            return "access:" + identity(request).subject_hash
         # Forwarded IP headers are untrusted. Behind Next this conservatively limits the shared hop.
         return request.client.host if request.client else "unknown"
 
@@ -113,6 +120,7 @@ def dashboard_router(service: DashboardService) -> APIRouter:
             origin=request.headers.get("Origin"),
             peer=peer(request),
             previous=raw(request),
+            access_identity=identity(request),
         )
         cookie(response, COOKIE, token, service.settings.auth_session_ttl_seconds)
         cookie(response, LOGIN_COOKIE, "", 0)
@@ -125,7 +133,8 @@ def dashboard_router(service: DashboardService) -> APIRouter:
     @router.post("/auth/logout", status_code=204, operation_id="auth_logout")
     def logout(request: Request, response: Response):
         service.logout(
-            raw(request), request.headers.get("X-CSRF-Token"), request.headers.get("Origin")
+            raw(request), request.headers.get("X-CSRF-Token"), request.headers.get("Origin"),
+            identity(request),
         )
         cookie(response, COOKIE, "", 0)
 

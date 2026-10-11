@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --webpack --hostname 127.0.0.1",
     "build": "next build --webpack",
+    "build:vercel": "node ../../infra/scripts/validate_dashboard_env.mjs && next build --webpack",
     "start": "next start --hostname 127.0.0.1",
     "typecheck": "next typegen --webpack && tsc --noEmit",
     "lint": "eslint .",

@@ -49,9 +49,8 @@ Shared PostgreSQL throttle reservations occur before password verification. Each
 account permits five attempts per five-minute window, and each observed peer permits
 30 login attempts and 60 challenge requests. Retry-After is bounded to 300 seconds.
 Concurrent service instances share the same counters. Forwarded IP headers are not
-trusted. Behind the current Next proxy, the peer throttle conservatively applies to
-the shared proxy hop; per-user forwarded-IP attribution requires a reviewed proxy
-trust arrangement before external deployment.
+trusted. Local deployments throttle the shared proxy hop; remote deployments derive
+the peer throttle from the cryptographically verified human subject.
 
 Input validation does not echo submitted values. Next and FastAPI bound mutation
 bodies to 16 KiB. The Next transport allows only dashboard routes, forwards only
@@ -61,9 +60,10 @@ storage and ordinary service logs.
 
 These choices follow [OWASP session management](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html)
 and [CSRF guidance](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html).
-The application continues to reject remote production origins. Local MFA and Access
-assertion verification are not implemented; enabling the MFA requirement fails
-startup rather than implying protection that does not exist.
+Remote Cloudflare mode now verifies fixed-issuer RS256, exact dashboard audience,
+expiry, MFA and email/subject-bound sessions. A server proxy key and environment fence
+run before mutations; the BFF checks response environment. Local mode rejects remote
+origins. Real domain/MFA acceptance remains required. [Remote deployment](DEPLOYMENT_VERCEL.md)
 
 ## Confirmed changes and authority
 
@@ -83,15 +83,19 @@ The confirmed HTTP routes expose these capabilities only:
   hard-bound or trading-mode editor is exposed. Pending commands, held/uncertain
   reservations or open positions reject the change until the risk gateway exists.
   An accepted change pauses enrolled accounts and advances their safety epoch.
-- Agents in Phase 3: prepare immutable configurations with enabled=false, compatible enabled
-  mock models, at most two unique fallback models, 1–120 second timeout, at most
-  4096 output tokens, and zero request cost. Prompt manifests stay operator-owned.
+- Agents: immutable configurations for compatible enabled models, at most two unique
+  fallback models, 1–120 second timeout and at most 4096 output tokens. Mock-only
+  configurations require zero request cost. Accepted OpenRouter models require a
+  positive confirmed cost ceiling and a valid environment-bound acceptance receipt.
+  Prompt manifests stay operator-owned; position review remains unavailable.
 
 Risk fingerprints preserve the domain contract's canonical representation. Model
 manifests and prices remain operator-reviewed and immutable; the registry UI is
 read-only. Only the offline mock is seeded. Phase 5 now permits confirmed activation
 of the five implemented offline agents with reviewed prompt version 2. Position review
-and external models remain unavailable. The API has no financial-record write grants or broker keys. Its
+remains unavailable. Accepted OpenRouter models are permitted only for
+analyst/decision/critic after operator import and with confirmed positive cost limits.
+Mock-only configurations require zero cost. The API has no financial-record write grants or broker keys. Its
 explicit unavailable-trading handler never creates a command or approval.
 
 ## Operational pages and lifecycle

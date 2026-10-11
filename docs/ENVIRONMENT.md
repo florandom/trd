@@ -1,12 +1,19 @@
 # Environment and configuration matrix
 
-Status: Phase 5 local analysis, 11 October 2026. `.env.example`, scoped configuration, authenticated dashboard, read-only Telegram adapter and offline advisory analysis are implemented. Telegram requires enrollment; agents require confirmed activation with the mock. External providers, broker execution and external-access verification remain disabled. Historical Phase 1 observations retain their original scope; the full matrix includes reserved future fields.
+Status: preparation before phase 6, 12 October 2026. Scoped configuration, Vercel
+preflight, remote Access/MFA verification and gated OpenRouter are implemented.
+Current installation remains local/mock/off. Real account/domain/Windows acceptance
+remains required; risk and broker execution are future work. See
+[remote environment fields and export](DEPLOYMENT_VERCEL.md) and
+[OpenRouter fields and acceptance](OPENROUTER.md). Historical phase observations retain
+their original scope; the matrix includes reserved future fields.
 
 ## Current analysis additions
 
 The AI worker alone consumes cost envelopes and request/lease controls.
-AI_PROVIDER_MODE permits only mock; populated provider keys cannot activate network
-requests. ENABLE_ADAPTIVE_MEMORY=true remains rejected. ENABLE_CRITIC_AGENT=true makes
+AI_PROVIDER_MODE defaults to mock; openrouter requires a valid expiring receipt,
+matching key/environment and positive budgets. A key alone cannot activate requests.
+ENABLE_ADAPTIVE_MEMORY=true remains rejected. ENABLE_CRITIC_AGENT=true makes
 the configured critic mandatory; the dashboard can also add the optional local critic.
 
 | Variable | Implemented default and bounds |
@@ -23,7 +30,7 @@ the configured critic mandatory; the dashboard can also add the optional local c
 Budget values use finite nonnegative decimal strings. Unknown/open attempts retain
 their reservation across periods and restart. Existing `.env` files retain their
 values; add new names to customize defaults and restart the relevant process.
-No paid provider is activated by these settings. See the
+Paid models also require operator import and confirmed agent selection. See the
 [analysis contract](ANALYSIS.md) and [Italian team guide](team/GUIDA_PREPARAZIONE.md).
 
 ## Current Telegram additions
@@ -82,11 +89,17 @@ The root `.env` belongs to the operator. Runtime settings never auto-load it. Ho
 | AI placeholder | `trd_ai` | Own heartbeat; reserved provider fields only |
 | Isolated bridge | `trd_risk` | Own heartbeat; reserved bridge keys/hard bounds only |
 | Maintenance | `trd_maintenance` | Own heartbeat; reserved alert/retention fields only |
-| Dashboard server | None | `API_INTERNAL_URL` only; safe same-origin proxy |
+| Dashboard server | None | Origin/environment plus proxy key and API Access service token; no database/provider/Telegram/MT5 credentials |
 
 Provisioning requires PostgreSQL17. It creates missing roles/database, rejects unsafe existing roles or unexpected memberships, never resets role passwords, revokes public schema CREATE, and grants schema DDL only to a non-login owner. The migrator assumes that owner explicitly. Runtime roles cannot read raw password hashes, settings history or audit details, and cannot write table rows. A fixed-search-path heartbeat function derives service identity from the database login. These grants are checked against a real database.
 
-`APP_ENV` is validated as development/test/production, but Phase 1 permits only `TRADING_MODE=paper` with automation/live, pending orders and partial close false. Telegram enablement and non-mock AI mode are rejected. Production requires secure cookies, strong role passwords, non-debug logging and absolute storage paths; external-looking production origins are rejected until authentication exists. These guards do not certify a production deployment.
+`APP_ENV` permits development/test/staging/production. Runtime remains paper with
+automation/live/pending/partial-close disabled. Telegram requires enrollment; OpenRouter
+requires explicit acceptance. Staging/production require strong role passwords,
+non-debug logging and absolute storage paths. Remote API requires cloudflare mode,
+HTTPS, secure cookies, MFA claims, fixed issuer/audience and proxy key. These guards
+do not certify a real deployment. Independent PostgreSQL instances are required for
+independent role credentials between environments.
 
 `DATABASE_ADMIN_URL`, `API_DATABASE_URL`, `COLLECTOR_DATABASE_URL`, `AI_DATABASE_URL`, `RISK_DATABASE_URL` and `MAINTENANCE_DATABASE_URL` are operator fields. Each runtime receives its role URL under `DATABASE_URL`. `POSTGRES_HOST/PORT` are used when generating local URLs; `API_PORT`, `BRIDGE_PORT`, `DASHBOARD_PORT`, `REDIS_PORT` select loopback host ports. Compose rewrites database host/port to its fixed internal PostgreSQL address. Local `API_INTERNAL_URL` must match the API port; the container dashboard uses `http://api:8000`.
 

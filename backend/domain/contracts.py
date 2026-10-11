@@ -97,7 +97,7 @@ class RiskPolicy(Contract):
 
 class ModelDefinition(Contract):
     id: Identifier
-    provider: Literal["mock", "openai", "anthropic", "google", "moonshot", "typesafe"]
+    provider: Literal["mock", "openrouter", "openai", "anthropic", "google", "moonshot", "typesafe"]
     model_name: str = Field(min_length=1, max_length=128)
     enabled: bool = Field(strict=True)
     schema_version: int = Field(strict=True, ge=1)
@@ -106,6 +106,29 @@ class ModelDefinition(Contract):
     output_price_per_million: NonnegativeDecimal
     pricing_version: str = Field(min_length=1, max_length=64)
     currency: Literal["USD"] = "USD"
+    input_token_limit: int = Field(default=0, strict=True, ge=0, le=1_000_000)
+    provider_slug: str | None = Field(default=None, pattern=r"^[a-z0-9][a-z0-9_/-]{0,63}$")
+    provider_label: str | None = Field(default=None, min_length=1, max_length=96)
+    accepted_environment_id: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9_-]{0,63}$")
+    accepted_until: datetime | None = None
+
+    @model_validator(mode="after")
+    def bounded_external_profile(self):
+        if self.accepted_until is not None and self.accepted_until.utcoffset() is None:
+            raise ValueError("acceptance expiry must be timezone aware")
+        if self.provider == "openrouter":
+            import re
+
+            if (
+                not re.fullmatch(r"[a-z0-9_.-]+/[a-z0-9_.-]+", self.model_name)
+                or not self.provider_slug
+                or not self.provider_label
+                or self.input_token_limit <= 0
+                or self.input_price_per_million <= 0
+                or self.output_price_per_million <= 0
+            ):
+                raise ValueError("OpenRouter requires a paid model and reviewed routing profile")
+        return self
 
 
 class AgentConfiguration(Contract):

@@ -4,6 +4,15 @@ Status: proposed design, 2 October 2026. Controls described here must be impleme
 
 ## Assets and trust assumptions
 
+Preparation update, 12 October 2026: remote controls now verify the original human
+Access JWT (fixed issuer/audience, RS256, bounded JWKS, expiry/MFA), bind its subject
+and email to TRD sessions, require the BFF proxy key and reject wrong environments
+before mutation. Vercel previews cannot select production. OpenRouter credentials stay
+in AI only, paid profiles require expiring acceptance and unknown cost holds budget.
+These checks are tested locally; real IdP/Access/Vercel/tunnel and host acceptance
+remain mandatory. Server/database administrators remain trusted operators; an editable
+acceptance receipt is not a cryptographic defense against a hostile host administrator.
+
 Protect broker account funds/positions, command authenticity, hard risk policy, admin authority, Telegram sessions, provider keys, personal signal data, audit/financial accuracy and recovery evidence. The highest-impact attack is an unauthorized or duplicated broker order. The most frequent operational hazard is a stale/uncertain view treated as safe.
 
 Untrusted inputs: Telegram text/media/URLs/edits, source identity until enrolled, AI output/refusals/usage metadata, browser requests, Internet traffic, and unauthenticated or malformed EA traffic. Authenticated EA telemetry is still bounded/schema-validated. Treat the broker as execution authority with potential delay, partial fills, gaps and outages.

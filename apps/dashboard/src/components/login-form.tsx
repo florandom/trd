@@ -12,6 +12,7 @@ import {Card} from '@astryxdesign/core/Card';
 import {Banner} from '@astryxdesign/core/Banner';
 import {Token} from '@astryxdesign/core/Token';
 import {api} from '@/lib/dashboard-api';
+import {DashboardThemeToggle} from '@/components/dashboard-theme';
 const styles = stylex.create({
   page: {
     minHeight: '100dvh',
@@ -99,6 +100,7 @@ export default function LoginForm() {
             </Text>
           </VStack>
         </Card>
+        <DashboardThemeToggle />
       </VStack>
     </Center>
   );

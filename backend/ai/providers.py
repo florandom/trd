@@ -43,6 +43,8 @@ class ProviderResponse:
     usage: ProviderUsage | None
     error: Reason | None = None
     retry_after_seconds: int = 0
+    generation_id: str | None = None
+    provider_name: str | None = None
 
 
 class AIProvider(Protocol):
