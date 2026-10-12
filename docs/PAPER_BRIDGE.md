@@ -3,14 +3,15 @@
 Implemented on 12 October 2026, Europe/Rome. Scope is a disposable local paper
 laboratory. It has no MT5/broker adapter and makes no external API requests.
 Real Telegram, paid AI, remote deployment credentials and broker acceptance are
-deferred to the operator's final tests. Native EA implementation is still required.
+deferred to the operator's final tests. A separate [local MQL5 bridge](MT5_LOCAL.md)
+now provides a simulation-only EA source; MetaEditor/terminal acceptance remains required.
 
 ## Running the laboratory
 
 Run `pnpm paper:accept` with the pinned Python/Node dependencies and Docker available.
 The command does not read operator `.env`. It starts a uniquely named PostgreSQL 17
 container, publishes a random loopback port, uses tmpfs storage and creates random
-independent database-role passwords. It migrates to `0007_paper_bridge`, enrolls a
+independent database-role passwords. It migrates to `0008_paper_positions`, enrolls a
 synthetic account/source and uses a test-only mock that explicitly returns PROPOSE.
 The ordinary mock remains WAIT. No account is enrolled through a runtime route.
 
@@ -96,7 +97,8 @@ lowercase_sha256_of_exact_body_bytes
 ```
 
 `journal_id` is an explicit local extension of the research proposal, shared by both
-implemented peers; native MQL interoperability is not claimed. Separate purpose keys
+implemented peers. The local EA source also uses this frame, verified against Python
+in its portable harness; native runtime interoperability still requires terminal tests. Separate purpose keys
 authenticate direction/status/path and the outstanding request's identity/sequence.
 Validity is at most ten seconds, checked again on response. Sequences are positive
 signed 64-bit integers and durably increment before transport. The database persists

@@ -90,8 +90,9 @@ revision page. Intermediate render PDFs/PNGs are QA artifacts, not deliverables.
 
 This completes phase 7 only within the requested local simulation scope. The lab
 executes synthetic EURUSD market openings with a USD account and attached stops;
-the pure engine's seven profiles retain their separate calculation tests. Native
-MQL5, MT5/demo broker transport, cash-flow/history reconciliation, real account
+the pure engine's seven profiles retain their separate calculation tests. A subsequent
+[local MQL5 source](MT5_LOCAL.md) provides a separate simulation scope. Native
+MetaEditor/terminal acceptance, MT5/demo broker transport, cash-flow/history reconciliation, real account
 ownership, real broker position operations and deployment/reboot/restore
 acceptance remain future work. Pending orders, partial closes and live remain disabled.
 No production, profitability or exactly-once broker claim is made.

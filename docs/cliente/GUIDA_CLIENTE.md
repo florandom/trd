@@ -2,7 +2,7 @@
 
 Aggiornamento del 12 ottobre 2026 | Fase 7 | Analisi e ordini simulati in locale
 
-TRD raccoglie messaggi da fonti Telegram autorizzate, riconosce segnali strutturati e mostra analisi e motivi di arresto nella dashboard. **Oggi non invia ordini al broker.** L’installazione resta locale, con simulatore gratuito, raccolta Telegram e agenti disattivati finché non vengono configurati.
+TRD raccoglie fonti Telegram autorizzate e mostra segnali e analisi nella dashboard. **Nessun ordine al broker:** il laboratorio lavora in simulazione. L’installazione resta locale; raccolta e agenti sono disattivati fino alla configurazione.
 
 ## Il percorso di un segnale
 
@@ -20,7 +20,7 @@ Apri il [diagramma interattivo](FLUSSO_SISTEMA.html) nel browser per esplorare o
 | Analisi e decisione IA | Consultive; simulatore disponibile, senza dati di mercato verificati |
 | OpenRouter e accesso remoto | Implementati e verificati con dati di prova; account, dominio, MFA e collaudo reale ancora richiesti |
 | Rischio e posizioni simulate | Aperture, stop, chiusure complete, risultati e recupero verificati nel laboratorio locale |
-| MT5 e ordini reali | Da implementare e collaudare; trading disabilitato |
+| Bridge MT5 e broker | Sorgente e logica simulata verificati; compilazione nativa e adattatore broker ancora richiesti |
 
 ## Accedere e scegliere le fonti
 
@@ -74,7 +74,9 @@ In **Posizioni**, ADMIN usa **Gestisci simulazione** per rivedere e confermare c
 
 In **Impostazioni** scegli la conservazione. Il team avvia la pulizia dei contenuti Telegram e IA a piccoli lotti; la pulizia automatica periodica e quella dei log per età non sono disponibili. La rotazione dei log per dimensione è attiva.
 
-Prima della raccolta reale servono collegamento Telegram e prove di lettura, revisioni e recupero. Prima di IA a pagamento e accesso remoto servono account, budget, privacy, dominio e MFA collaudati. Prima di qualsiasi ordine reale serviranno MT5, riconciliazione broker e conto demo verificati; il trading reale richiede ulteriori autorizzazioni indipendenti.
+Nei test finali il team collega Telegram, OpenRouter e accesso remoto, verificando lettura, budget, privacy e MFA. Per il broker servono adattatore MT5, riconciliazione e demo; live richiede autorizzazioni aggiuntive.
+
+**Bridge MT5** spento all’avvio; logica simulata verificata, compilazione e terminale da collaudare.
 
 ## Cronologia delle revisioni
 
@@ -93,3 +95,5 @@ Prima della raccolta reale servono collegamento Telegram e prove di lettura, rev
 12 ottobre 2026 — Fase 7: rischio e ordini simulati collegati e verificati in laboratorio locale. API, credenziali esterne e test demo rinviati al collaudo finale; diagrammi e Word aggiornati.
 
 12 ottobre 2026 — Posizioni paper, risultati e ripresa controllata verificati.
+
+12 ottobre 2026 — Bridge MT5 locale: sorgente e simulazione verificati; terminale e broker da collaudare.

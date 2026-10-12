@@ -12,6 +12,11 @@ The [paper position extension](docs/PAPER_POSITIONS.md) adds authenticated ADMIN
 requests for full closes, risk-reducing stops and controlled resume, plus net realized
 results and uncertain-outcome retention. All remain local-only.
 
+The [local MQL5 bridge](docs/MT5_LOCAL.md) provides a disabled-by-default simulation
+EA source. `pnpm mt5:accept` exercises that source with a portable C++ platform shim
+and disposable PostgreSQL; `pnpm mt5:lab --output-dir` prepares a private native-test
+laboratory. MetaEditor/terminal compilation and broker/demo acceptance are separate gates.
+
 Preparation before phase 6 adds Vercel packaging, independent environments,
 Cloudflare Access/MFA identity checks and gated OpenRouter integration. The persistent
 Python backend stays on Windows and can also deploy on Linux. See

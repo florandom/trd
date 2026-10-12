@@ -101,7 +101,8 @@ paused, net realized results and controlled resume through real authenticated
 dashboard routes plus signed loopback bridge HTTP. Resources are temporary and
 removed. [Verification evidence](POSITION_MANAGEMENT_VALIDATION.md).
 
-Native MQL5, real broker-history/cash-flow reconciliation, automatic broker-held
+The [local MQL5 source](MT5_LOCAL.md) is now available for simulation; native
+MetaEditor/terminal acceptance and the broker adapter, broker-history/cash-flow reconciliation, automatic broker-held
 stop execution, partial closes/pending orders, other executor conversions, position
 review agents, memory, notifications and Windows/server acceptance remain future
 work. Synthetic results do not certify a trading strategy or production execution.

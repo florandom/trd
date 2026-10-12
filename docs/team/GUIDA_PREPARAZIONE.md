@@ -17,7 +17,8 @@ Questa guida raccoglie le azioni di preparazione; i contratti completi restano n
 | Vercel e Cloudflare | Due progetti, domini stabili, IdP con MFA e claim firmato, tunnel API e service token distinti |
 | OpenRouter | Account e chiave per ambiente, credito, prezzi, provider e limiti verificati |
 | Server e backup | Windows persistente o backend Linux, stato privato, backup cifrati e prova di ripristino |
-| MT5 e bot avvisi | Futuri: conto demo e terminale Windows; bot separato dalla lettura Telegram |
+| MT5 | Bridge locale in sorgente; MetaEditor e terminale da collaudare. Broker demo futuro |
+| Bot avvisi | Futuro e separato dalla lettura Telegram |
 
 Staging e produzione usano **istanze PostgreSQL, porte, volumi, directory, chiavi e account indipendenti**. Database diversi nello stesso cluster non permettono password diverse per gli stessi ruoli. Account Telegram distinti evitano collector non coordinati fra ambienti.
 
@@ -106,7 +107,15 @@ Il gateway blocca il conto in transazione, prenota il rischio e rivaluta prima d
 
 Il laboratorio gestisce EURUSD con conto USD sintetico. In **Posizioni**, ADMIN usa **Gestisci simulazione**, rivede e conferma chiusura completa o stop che riduce il rischio. VIEWER consulta; la richiesta non conferma l’esecuzione. Risultati netti realizzati nello storico, con commissioni simulate. Chiusure ammesse anche da PAUSED con posizione verificata.
 
-**Verifica ripresa** richiede dati freschi, nessuna esecuzione irrisolta e limiti rispettati. Un errore dei dati richiede conto senza posizioni; base UTC e blocco giornaliero non si azzerano. MT5, chiusure parziali e broker reali restano da collaudare. [Gestione posizioni](../PAPER_POSITIONS.md) e [Verifiche](../POSITION_MANAGEMENT_VALIDATION.md).
+**Verifica ripresa** richiede dati freschi, nessuna esecuzione irrisolta e limiti rispettati. Un errore dei dati richiede conto senza posizioni; base UTC e blocco giornaliero non si azzerano. [Gestione posizioni](../PAPER_POSITIONS.md) e [Verifiche](../POSITION_MANAGEMENT_VALIDATION.md).
+
+## Bridge MT5 nel laboratorio
+
+`pnpm mt5:accept` verifica il sorgente MQL5 con un banco di prova C++ e PostgreSQL temporaneo: firme, aperture, stop, chiusure e recupero. Servono Docker e compilatore C++; non account esterni. Non certifica MetaEditor, Windows o il terminale.
+
+Per la futura prova nativa, usa `pnpm mt5:lab --output-dir` con una nuova cartella privata: avvia il laboratorio temporaneo e prepara sorgenti e configurazione. Copia TRD in MQL5/Experts e config.json in MQL5/Files/TRD-LAB; compila e collega TrdLocalBridge. Autorizza solo l’origine loopback indicata; imposta **ActivateLocalSimulation=true**, lasciando **LocalCrashPoint** vuoto. Non usare Strategy Tester: WebRequest non è disponibile.
+
+Il conto resta sintetico EURUSD/USD, con quotazioni fisse e sessione limitata al giorno UTC. Chiavi locali generate, mai account broker; configura i permessi della cartella per il solo operatore. Registri in Common/Files, lock esclusivo, nessun reinvio di esiti incerti. All’uscita il server e i dati temporanei vengono rimossi; rimuovi anche la copia di config.json dal terminale. [Procedura completa e limiti](../MT5_LOCAL.md).
 
 ## Abilitare OpenRouter dopo il collaudo
 
@@ -146,7 +155,7 @@ Windows: `New-NativeServiceTemplates.ps1 -BackendOnly` con prefissi, porte e dir
 
 ## Capacità ancora da implementare
 
-MT5 richiede conto demo, terminale Windows, bridge firmato e collaudo del broker. Credenziali broker solo nel terminale; chiavi bridge distinte. Live, ordini pendenti e chiusure parziali restano disabilitati. Il bot degli avvisi è futuro e separato dal collector. [Architettura](../ARCHITECTURE.md).
+L’adattatore broker MT5 richiede implementazione e collaudo demo sul terminale Windows. Credenziali broker solo nel terminale; chiavi bridge distinte. Live, ordini pendenti e chiusure parziali restano disabilitati. Il bot degli avvisi resta futuro. [Architettura](../ARCHITECTURE.md).
 
 ## Aggiornare solo quando necessario
 
@@ -171,3 +180,5 @@ Data Europe/Rome, breve voce in cronologia e Word corrispondente per ogni guida 
 12 ottobre 2026 — Fase 7: ordini simulati, firma e recupero verificati. API e credenziali esterne ai test finali; migrazione, diagrammi e Word aggiornati.
 
 12 ottobre 2026 — Stop, chiusure complete, storico e ripresa paper verificati; migrazione, diagrammi e Word aggiornati.
+
+12 ottobre 2026 — Bridge MQL5 locale e banco di prova verificati; compilazione nativa e broker ancora richiesti.

@@ -100,7 +100,8 @@ no orphan revision pages. Intermediate QA PDFs/PNGs are not deliverables.
 ## Remaining gates
 
 This extension completes local full-close, protective-update, result-history and
-controlled-resume behavior. Native MQL5/MT5 transport, real broker history/cash-flow
+controlled-resume behavior. The subsequent [local MQL5 source](MT5_LOCAL.md) has a
+separate simulation scope. Native terminal acceptance and broker transport, real broker history/cash-flow
 reconciliation, automatic broker-held stop execution, partial closes/pending orders,
 additional executor conversions, position-review agents, memory, notifications and
 deployment/reboot/restore acceptance remain future work. External Telegram/AI/broker
