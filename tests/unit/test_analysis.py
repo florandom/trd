@@ -41,6 +41,7 @@ def test_exact_supported_grammar(body):
     result = parse(body)
     assert result.classification == "STRUCTURED"
     assert result.outcome == "WAITING"
+    assert result.reason_codes == (Reason.RISK_GATEWAY_UNAVAILABLE,)
     assert result.proposal.expires_at == NOW + timedelta(seconds=900)
     assert isinstance(result.proposal.entry, Decimal)
 

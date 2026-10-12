@@ -129,11 +129,11 @@ class AnalysisWorker:
                     reason = Reason.PROVIDER_DISABLED
                     break
             if reason is not None:
-                outcome, reasons = "ESCALATED", [reason, Reason.RISK_NOT_IMPLEMENTED]
+                outcome, reasons = "ESCALATED", [reason, Reason.RISK_GATEWAY_UNAVAILABLE]
             else:
                 # One application deadline covers every mandatory stage and fallback.
                 deadline = monotonic() + self.settings.ai_hard_timeout_seconds
-                reasons = [Reason.RISK_NOT_IMPLEMENTED]
+                reasons = [Reason.RISK_GATEWAY_UNAVAILABLE]
                 for stage in stages[2:]:
                     agent = agents[stage]
                     response = None

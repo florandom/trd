@@ -42,6 +42,7 @@ class Reason(StrEnum):
     MOCK_ONLY = "MOCK_ONLY"
     NO_MARKET_CONTEXT = "NO_MARKET_CONTEXT"
     RISK_NOT_IMPLEMENTED = "RISK_NOT_IMPLEMENTED"
+    RISK_GATEWAY_UNAVAILABLE = "RISK_GATEWAY_UNAVAILABLE"
 
 
 class AnalysisJob(Contract):
@@ -142,7 +143,7 @@ def parse_message(
         classification="STRUCTURED",
         outcome="WAITING",
         proposal=proposal,
-        reason_codes=(Reason.RISK_NOT_IMPLEMENTED,),
+        reason_codes=(Reason.RISK_GATEWAY_UNAVAILABLE,),
     )
 
 

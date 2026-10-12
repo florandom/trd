@@ -30,7 +30,7 @@ export const PAGES: Record<string, {title: string; description: string}> = {
   risk: {
     title: 'Controlli del rischio',
     description:
-      'Limiti preparati per la simulazione. Il motore di rischio sarà attivato in una fase successiva.',
+      'Motore di rischio verificato con dati di prova. I limiti restano preparatori: conto, mercato e servizio di esecuzione devono ancora essere collegati.',
   },
   agents: {
     title: 'Agenti IA',

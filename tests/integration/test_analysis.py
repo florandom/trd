@@ -377,7 +377,7 @@ def test_schema_valid_propose_never_grants_financial_authority(analysis):
     ingest(analysis)
     assert worker.process_one()
     assert rows(db, Signal)[0]["state"] == "WAITING"
-    assert Reason.RISK_NOT_IMPLEMENTED in rows(db, AnalysisRecord)[0]["reason_codes"]
+    assert Reason.RISK_GATEWAY_UNAVAILABLE in rows(db, AnalysisRecord)[0]["reason_codes"]
     assert not rows(db, ExecutionCommand)
 
 
