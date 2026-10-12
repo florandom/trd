@@ -19,7 +19,7 @@ Apri il [diagramma interattivo](FLUSSO_SISTEMA.html) nel browser per esplorare o
 | Classificazione e interpretazione | Locali, con formato rigoroso; attivazione esplicita degli agenti |
 | Analisi e decisione IA | Consultive; simulatore disponibile, senza dati di mercato verificati |
 | OpenRouter e accesso remoto | Implementati e verificati con dati di prova; account, dominio, MFA e collaudo reale ancora richiesti |
-| Rischio ed esecuzione simulata | Collegati e verificati nel laboratorio locale: dati firmati, prenotazioni, ordini simulati e recupero |
+| Rischio e posizioni simulate | Aperture, stop, chiusure complete, risultati e recupero verificati nel laboratorio locale |
 | MT5 e ordini reali | Da implementare e collaudare; trading disabilitato |
 
 ## Accedere e scegliere le fonti
@@ -68,7 +68,9 @@ OpenRouter richiede collaudo del team, modello approvato non scaduto e costo mas
 
 Ogni modifica amministrativa richiede conferma, valida per 2 minuti e legata alla versione corrente. Se un altro amministratore ha modificato i dati, aggiorna e rivedi. Il **Registro attività** conserva accessi e cambiamenti.
 
-Nei **Controlli del rischio** puoi preparare limiti più restrittivi: non puoi aumentare l’autorità del server, eliminare gli stop obbligatori o abilitare il trading reale. Il motore è implementato e verificato con dati di prova: controlla stop, rischio, perdita giornaliera, esposizione, lotti, leva, spread e orari. **Il laboratorio locale** collega rischio e ordini simulati, con dati e chiavi temporanei; il team può provarlo senza tuoi account. Un esito incerto conserva il rischio e ferma nuove operazioni fino alla riconciliazione. Nel laboratorio, limiti più restrittivi fermano i comandi non inviati; esposizioni esterne restano soggette a verifica futura.
+Nei **Controlli del rischio** puoi ridurre i limiti, mantenendo stop obbligatori e trading reale disabilitato. Nel laboratorio, esiti incerti conservano l’esposizione e fermano nuove aperture.
+
+In **Posizioni**, ADMIN usa **Gestisci simulazione** per rivedere e confermare chiusura completa o stop che riduce il rischio. La richiesta non conferma l’esecuzione: aggiorna per vedere esito e risultato netto, con commissioni simulate. **Verifica ripresa** richiede dati riconciliati; non libera esiti incerti né azzera il blocco giornaliero. Un errore dei dati richiede conto senza posizioni. Tutto resta nel laboratorio locale.
 
 In **Impostazioni** scegli la conservazione. Il team avvia la pulizia dei contenuti Telegram e IA a piccoli lotti; la pulizia automatica periodica e quella dei log per età non sono disponibili. La rotazione dei log per dimensione è attiva.
 
@@ -89,3 +91,5 @@ Prima della raccolta reale servono collegamento Telegram e prove di lettura, rev
 12 ottobre 2026 — Motore di rischio locale della fase 6 implementato e verificato. Chiariti i controlli e i lotti conservativi; conto, mercato autenticato, esecuzione e MT5 restano futuri. Aggiornati diagrammi e Word.
 
 12 ottobre 2026 — Fase 7: rischio e ordini simulati collegati e verificati in laboratorio locale. API, credenziali esterne e test demo rinviati al collaudo finale; diagrammi e Word aggiornati.
+
+12 ottobre 2026 — Posizioni paper, risultati e ripresa controllata verificati.

@@ -4,6 +4,10 @@ Date: 12 October 2026, Europe/Rome. Scope: local simulation with synthetic data,
 independent database roles and temporary signing keys. External API connections and
 credentials are deferred to the operator's final tests. Real trading remains off.
 
+A subsequent local [position-management extension](POSITION_MANAGEMENT_VALIDATION.md)
+adds closes, protective updates, result history and controlled resume. Counts below
+retain the original phase 7 checkpoint; current acceptance is in the linked extension.
+
 ## Delivered within this scope
 
 - Opt-in risk-only gateway with signed synthetic snapshots, persistent ownership,
@@ -88,7 +92,7 @@ This completes phase 7 only within the requested local simulation scope. The lab
 executes synthetic EURUSD market openings with a USD account and attached stops;
 the pure engine's seven profiles retain their separate calculation tests. Native
 MQL5, MT5/demo broker transport, cash-flow/history reconciliation, real account
-ownership, stop modifications, closes, fault/latch reset and deployment/reboot/restore
+ownership, real broker position operations and deployment/reboot/restore
 acceptance remain future work. Pending orders, partial closes and live remain disabled.
 No production, profitability or exactly-once broker claim is made.
 

@@ -8,6 +8,16 @@ and local paper execution. Real broker/MT5 acceptance remains future work. OpenR
 [validation](PHASE_2_VALIDATION.md) and [current Telegram evidence](PHASE_4_VALIDATION.md)
 record their separate acceptance scopes.
 
+## Local position-management extension
+
+`0008_paper_positions` adds three fenced tables for confirmed operator requests,
+current position protection/revision and append-only outcomes, for 50 mapped tables.
+API has only safe views and authenticated session/CSRF/confirmation-bound request
+submission. Risk alone creates signed commands and applies verified outcomes. Null
+reservation IDs are allowed only for database-guarded confirmed position maintenance;
+this cannot authorize an unreserved opening. Unknown operations retain the full
+position; closures and P&L require signed economic evidence. [Contract](PAPER_POSITIONS.md).
+
 ## Phase 7 additions
 
 `0007_paper_bridge` adds six fenced tables, bringing ORM/schema parity to 47:

@@ -2,7 +2,7 @@
 
 Aggiornamento del 12 ottobre 2026 | Fase 7 | Checklist operativa del team
 
-Dashboard, raccolta Telegram, analisi consultiva e motore del rischio sono implementati; il rischio, OpenRouter e accesso Vercel con Cloudflare MFA sono verificati con dati di prova. **L’installazione resta locale e in simulazione, con Telegram e agenti disattivati.** Account reali, dominio e VPS richiedono collaudo. Dati firmati, prenotazioni, esecuzione e riconciliazione sono verificati nel laboratorio paper isolato. MT5 e riconciliazione con broker reale sono futuri; API e credenziali esterne saranno predisposte per i test finali.
+Dashboard, Telegram, analisi e rischio sono implementati e verificati con dati di prova. **L’installazione resta locale, con Telegram e agenti disattivati.** Il laboratorio paper verifica dati firmati, ordini, stop, chiusure e ripresa. API e credenziali esterne saranno preparate per i test finali; account, accesso remoto, server reale e MT5 richiedono collaudo.
 
 Questa guida raccoglie le azioni di preparazione; i contratti completi restano nei documenti tecnici collegati. Nessun esempio contiene credenziali o messaggi personali.
 
@@ -25,7 +25,7 @@ Staging e produzione usano **istanze PostgreSQL, porte, volumi, directory, chiav
 
 1. Usa i lockfile: Node 24.20.0, pnpm 11.25.0, Python 3.13.16, uv 0.12.22, PostgreSQL 17 e Docker Compose. Redis è facoltativo.
 2. Esegui `pnpm setup`, poi `docker compose up --build -d`. Il setup genera segreti distinti e conserva `.env` esistente; aggiungi manualmente nuovi campi se necessari. Non eliminare volumi per aggiornare.
-3. Verifica migrazione `0007_paper_bridge`, salute servizi e ruoli separati. Crea utenti nominativi con `pnpm user:create` da terminale interattivo.
+3. Verifica migrazione `0008_paper_positions`, salute servizi e ruoli separati. Crea utenti nominativi con `pnpm user:create` da terminale interattivo.
 4. Apri `http://localhost:3000`; prova ADMIN, VIEWER, uscita e conferme. Agenti e raccolta non si attivano automaticamente.
 
 | Configurazione iniziale | Vincolo |
@@ -91,7 +91,7 @@ Simulatore con costo massimo agente zero. Budget come stringhe decimali finite; 
 
 ## Provare rischio ed esecuzione in locale
 
-Esegui `pnpm paper:accept` con Docker disponibile. Non servono account o credenziali esterne: crea PostgreSQL separato, chiavi casuali e dati sintetici, prova HTTP su loopback e rimuove le risorse temporanee. Non legge `.env` operatore. Verifica due ordini simulati, nessun duplicato e recupero dopo interruzione.
+Esegui `pnpm paper:accept` con Docker disponibile. Non servono account o credenziali esterne: crea PostgreSQL separato, chiavi casuali e dati sintetici, prova HTTP su loopback e rimuove le risorse temporanee. Non legge `.env` operatore. Verifica due aperture, aggiornamento degli stop, due chiusure complete, risultati, ripresa controllata e recupero senza duplicati.
 
 Il gateway blocca il conto in transazione, prenota il rischio e rivaluta prima dell’invio. Solo la conferma di esecuzione simulata completa il segnale; ricevuta e accettazione non bastano. Esiti incerti trattengono il rischio e fermano nuove aperture; un riavvio non reinvia l’ordine.
 
@@ -104,7 +104,9 @@ Il gateway blocca il conto in transazione, prenota il rischio e rivaluta prima d
 
 `PAPER_BRIDGE_ENABLED=false` resta il default. Si attiva solo in development/test con `PAPER_PROFILE_PATH`, `PAPER_REQUEST_KEY` e `PAPER_RESPONSE_KEY` distinte, ricevute solo dal processo rischio. Il comando genera tutto temporaneamente: non configurare l’installazione normale. Automazione e live restano false; staging, production, demo e live sono rifiutati.
 
-Il laboratorio apre EURUSD con conto USD sintetico e stop allegati. Chiusure, modifiche degli stop, MT5 e broker reali richiedono implementazione e collaudi separati. Contratti in [Bridge paper](../PAPER_BRIDGE.md), [Rischio](../RISK.md) e [Verifiche fase 7](../PHASE_7_VALIDATION.md).
+Il laboratorio gestisce EURUSD con conto USD sintetico. In **Posizioni**, ADMIN usa **Gestisci simulazione**, rivede e conferma chiusura completa o stop che riduce il rischio. VIEWER consulta; la richiesta non conferma l’esecuzione. Risultati netti realizzati nello storico, con commissioni simulate. Chiusure ammesse anche da PAUSED con posizione verificata.
+
+**Verifica ripresa** richiede dati freschi, nessuna esecuzione irrisolta e limiti rispettati. Un errore dei dati richiede conto senza posizioni; base UTC e blocco giornaliero non si azzerano. MT5, chiusure parziali e broker reali restano da collaudare. [Gestione posizioni](../PAPER_POSITIONS.md) e [Verifiche](../POSITION_MANAGEMENT_VALIDATION.md).
 
 ## Abilitare OpenRouter dopo il collaudo
 
@@ -144,7 +146,7 @@ Windows: `New-NativeServiceTemplates.ps1 -BackendOnly` con prefissi, porte e dir
 
 ## Capacità ancora da implementare
 
-MT5 richiederà conto demo, terminale Windows, bridge firmato, riconciliazione e collaudo broker. Credenziali broker solo nel terminale; chiavi bridge e firma distinte. Ordini pendenti e chiusura parziale disabilitati. Live richiederà autorizzazioni server e verifiche indipendenti. Il bot Telegram degli avvisi è separato dal collector e non invia oggi notifiche. Direzione approvata in [Architettura](../ARCHITECTURE.md).
+MT5 richiede conto demo, terminale Windows, bridge firmato e collaudo del broker. Credenziali broker solo nel terminale; chiavi bridge distinte. Live, ordini pendenti e chiusure parziali restano disabilitati. Il bot degli avvisi è futuro e separato dal collector. [Architettura](../ARCHITECTURE.md).
 
 ## Aggiornare solo quando necessario
 
@@ -167,3 +169,5 @@ Data Europe/Rome, breve voce in cronologia e Word corrispondente per ogni guida 
 12 ottobre 2026 — Fase 6: rischio locale verificato; esecuzione futura. Diagrammi e Word aggiornati.
 
 12 ottobre 2026 — Fase 7: ordini simulati, firma e recupero verificati. API e credenziali esterne ai test finali; migrazione, diagrammi e Word aggiornati.
+
+12 ottobre 2026 — Stop, chiusure complete, storico e ripresa paper verificati; migrazione, diagrammi e Word aggiornati.

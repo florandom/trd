@@ -8,6 +8,10 @@ local keys and synthetic data, then removes its resources. It never reads operat
 [phase 7 evidence](docs/PHASE_7_VALIDATION.md). Real trading and external integrations
 remain disabled; the normal mock still waits. MT5/demo acceptance is separate.
 
+The [paper position extension](docs/PAPER_POSITIONS.md) adds authenticated ADMIN
+requests for full closes, risk-reducing stops and controlled resume, plus net realized
+results and uncertain-outcome retention. All remain local-only.
+
 Preparation before phase 6 adds Vercel packaging, independent environments,
 Cloudflare Access/MFA identity checks and gated OpenRouter integration. The persistent
 Python backend stays on Windows and can also deploy on Linux. See

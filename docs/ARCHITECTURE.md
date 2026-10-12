@@ -2,8 +2,10 @@
 
 Status: approved direction, phases 1–7 implemented within local paper acceptance.
 Phase 7 wires the pure risk engine to authenticated synthetic observations, atomic
-reservations, signed commands and a durable simulator. Native MT5 and real broker
-acceptance remain future gates. [Paper bridge](PAPER_BRIDGE.md), [phase 7 evidence](PHASE_7_VALIDATION.md).
+reservations, signed commands and a durable simulator. The local position extension
+adds confirmed full closes, protective updates and controlled resume; native MT5 and
+real broker acceptance remain future gates. [Paper bridge](PAPER_BRIDGE.md),
+[phase 7 evidence](PHASE_7_VALIDATION.md), [position evidence](POSITION_MANAGEMENT_VALIDATION.md).
 Vercel/OpenRouter preparation remains subject to real-host acceptance.
 Research baseline: 2 October 2026. See [risk contract](RISK.md) and
 [phase 6 evidence](PHASE_6_VALIDATION.md).

@@ -16,8 +16,9 @@ The ordinary mock remains WAIT. No account is enrolled through a runtime route.
 
 An ephemeral risk HTTP process binds `127.0.0.1` on a random port. A separate executor
 uses random 256-bit request/response keys and a private journal directory. The run
-checks two simulated fills, duplicate suppression and restart after a simulated
-broker fill. It prints a redacted result and removes its container, keys and files
+checks two simulated openings, a stop update, full closes, net realized results,
+controlled resume, duplicate suppression and restart recovery. It prints a redacted
+result and removes its container, keys and files
 on normal/error exit. No primary database, operator credentials or volume is used.
 An uncatchable host termination may require removing that run's temporary container.
 
@@ -54,8 +55,9 @@ UTC opening equity is immutable for the day. Reaching the inclusive loss thresho
 latches PAUSED persistently; equity recovery cannot clear it. The laboratory has no
 deposit/withdrawal ledger and rejects nonzero cash-flow telemetry. A future real
 adapter must authenticate and uniquely reconcile each cash flow rather than trust
-a caller's adjustment. Contradictory authenticated evidence latches a permanent
-account fault, invalidates unsent commands and preserves uncertain exposure.
+a caller's adjustment. Contradictory authenticated evidence latches an account fault,
+invalidates unsent commands and preserves uncertain exposure. Clearing the fault
+requires explicit operator confirmation and fresh flat-account reconciliation.
 Unauthenticated requests never change account state.
 
 Dashboard ADMIN can tighten limits with the existing session/version/confirmation
@@ -128,11 +130,12 @@ Conflicting fills roll back the batch and quarantine the account; risk is retain
 
 ## Scope and remaining gates
 
-The repeatable end-to-end lab executes only market openings for synthetic EURUSD
-with USD account currency and attached stops. The pure engine's seven Forex valuation
-profiles remain separately tested. Other executor conversions, closes, stop changes,
-pending orders, partial closes, lifecycle of closed positions and fault/latch reset
-require subsequent implementation and acceptance. Snapshots come from the trusted
+The repeatable end-to-end lab supports synthetic EURUSD market openings with USD
+account currency and attached stops. The pure engine's seven Forex valuation
+profiles remain separately tested. The [position extension](PAPER_POSITIONS.md) adds confirmed full closes,
+risk-reducing stop changes, closed-position history and controlled resume. Other
+executor conversions, pending orders, partial closes and real broker recovery still
+require implementation and acceptance. Snapshots come from the trusted
 synthetic executor, not authenticated real broker history. No exactly-once broker,
 profitability, native Windows/MT5, demo or live guarantee follows from these tests.
 
