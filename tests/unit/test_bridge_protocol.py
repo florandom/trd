@@ -117,8 +117,9 @@ def test_separate_response_key_direction_status_path_and_outstanding_sequence():
         b"\xff",
         b"{}\x00",
         b'{"v":' + b"[" * 20 + b"0" + b"]" * 20 + b"}",
-        b'{"v":"' + b"x" * 8193 + b'"}',
-        b" " * 65537,
+        # Pytest copies test IDs into PYTEST_CURRENT_TEST; Windows limits its length.
+        pytest.param(b'{"v":"' + b"x" * 8193 + b'"}', id="string-over-limit"),
+        pytest.param(b" " * 65537, id="body-over-limit"),
     ],
 )
 def test_strict_bounded_json(body):
