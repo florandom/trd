@@ -2,8 +2,10 @@
 
 Implemented on 12 October 2026, Europe/Rome. This delivers the native EA **source**
 and repeatable local simulation, while external account credentials and connections
-remain deferred. It does not implement broker submission. No `OrderSend`, trading
-library, broker-account login, external URL or DLL import exists in this build.
+remain deferred. The [request adapter](MT5_BROKER_LOCAL.md) now constructs native
+MqlTradeRequest structures and exercises broker preflight/result semantics through
+a synthetic terminal port. Native `OrderSend`/`OrderCheck` calls, trading libraries,
+broker-account login, external URLs and DLL imports are excluded from this build.
 MetaEditor compilation, the actual MT5 runtime and Windows acceptance are still gates.
 
 ## Components and authority
@@ -14,6 +16,10 @@ MetaEditor compilation, the actual MT5 runtime and Windows acceptance are still 
   frame, bounded JSON, canonical base64, exact fixed-point laboratory arithmetic.
 - `apps/mt5/Include/TrdLab.mqh`: exact immutable command checks, account ownership,
   append-only executor journal, separate synthetic broker ledger, outbox and recovery.
+- `apps/mt5/Include/TrdBroker.mqh`: fixed-point request mapping, independent terminal
+  capability/ownership checks and conservative broker-result classification.
+- `apps/mt5/Include/TrdBrokerSimulation.mqh`: the only terminal port in this build;
+  synthetic preflight, replies and independent durable economic evidence.
 - `infra/scripts/mt5_lab.py` with `tests/mt5`: test-only C++ platform shim. The actual
   EA/core source is included with mechanical syntax adaptations; crypto, JSON,
   preflight, journal reducers and `OnInit`/`OnTimer` logic are not reimplemented.
@@ -68,7 +74,7 @@ pnpm mt5:lab --output-dir <new-private-directory>
    only the exact local HTTP origin printed by the laboratory for WebRequest.
    Do not authorize remote origins or enable broker execution as part of this test.
 4. Attach the EA to one chart. Set `ActivateLocalSimulation=true`; keep
-   `LocalCrashPoint` empty. No external account login or trading permission is used
+  `LocalCrashPoint` and `LocalBrokerScenario` empty. No external account login or trading permission is used
    by its code. `ActivateLocalSimulation=false` needs no config and starts no timer.
 5. Use the local console for synthetic openings, confirmed stop/close requests and
    state inspection. Position commands go through the existing ADMIN confirmation
@@ -102,6 +108,11 @@ or outbox release. Corrupt/truncated files, nonmonotonic sequences/states, missi
 economic evidence or a ledger result without a durable intent fail initialization.
 Checksums detect corruption; they do not protect against a trusted host administrator.
 
+Broker preflight and exact request fields persist before intent; the broker reply
+persists separately with original return codes, request/order/deal IDs and result
+volume/price. A crash before intent rejects the abandoned request without submission.
+Accepted, completed-without-evidence, partial or ambiguous replies retain intent and
+stop further polling and complete snapshots; the event outbox can still upload.
 Recovery replays the independent broker ledger and uploads the original economic
 event without submitting again. An intent without a proven result becomes UNKNOWN;
 no absent deal, timeout, acknowledgement or restart removes its exposure. Conflicting
@@ -126,7 +137,7 @@ transactions, ownership and cash flows before any demo/live gate passes.
 Compile and inspect `.ex5` with MetaEditor, test the real terminal's HTTP/port/allowlist
 and Unicode/binary behavior, journal faults, latency and restart on Windows. No broker
 credentials are required to validate this synthetic code path. Later demo work needs
-an actual adapter with broker metadata/history/cash-flow reconciliation, attached-stop
+an accepted native terminal port wired to this request adapter, with broker metadata/history/cash-flow reconciliation, attached-stop
 and fill capabilities, verified position identifiers and account mode, conservative
 OrderCheck/OrderSend outcome handling and real shutdown/reboot recovery. HTTPS remote
 transport and live authorization remain separate gates. The local EA cannot be

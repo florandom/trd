@@ -140,6 +140,10 @@ def build(stem, label):
     code_style.font.name = "Liberation Mono"
     code_style.font.size = Pt(8.5)
     code_style.paragraph_format.space_after = Pt(3)
+    revision_style = styles.add_style("Guide Revision", 1)
+    revision_style.base_style = normal
+    revision_style.paragraph_format.line_spacing = 1
+    revision_style.paragraph_format.space_after = Pt(2)
     section.header.paragraphs[0].text = label
     section.header.paragraphs[0].runs[0].font.size = Pt(8)
     footer = section.footer.paragraphs[0]
@@ -155,6 +159,7 @@ def build(stem, label):
     normal.element.get_or_add_rPr().append(language)
     index = 0
     first_paragraph = True
+    in_revisions = False
     list_number_id = None
     while index < len(lines):
         line = lines[index].strip()
@@ -164,6 +169,7 @@ def build(stem, label):
         if line.startswith("# "):
             document.add_paragraph(line[2:], "Title")
         elif line.startswith("## "):
+            in_revisions = line == "## Cronologia delle revisioni"
             document.add_paragraph(line[3:], "Heading 1")
         elif line.startswith("### "):
             document.add_paragraph(line[4:], "Heading 2")
@@ -216,7 +222,8 @@ def build(stem, label):
             ):
                 text += " " + lines[index].strip()
                 index += 1
-            inline(document.add_paragraph(style="Subtitle" if first_paragraph else None), text)
+            style = "Subtitle" if first_paragraph else "Guide Revision" if in_revisions else None
+            inline(document.add_paragraph(style=style), text)
             first_paragraph = False
     document.save(destination)
     print(destination.relative_to(ROOT))

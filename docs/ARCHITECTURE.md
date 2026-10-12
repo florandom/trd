@@ -5,7 +5,9 @@ Phase 7 wires the pure risk engine to authenticated synthetic observations, atom
 reservations, signed commands and a durable simulator. The local position extension
 adds confirmed full closes, protective updates and controlled resume. The
 [MQL5 local bridge](MT5_LOCAL.md) now has a simulation-only EA source and a portable
-platform harness; MetaEditor/terminal and real broker acceptance remain future gates.
+platform harness. Its [MT5 request adapter](MT5_BROKER_LOCAL.md) prepares market,
+protective-update and targeted-close requests through a synthetic terminal port;
+native terminal calls, MetaEditor/terminal and real broker acceptance remain gates.
 [Paper bridge](PAPER_BRIDGE.md),
 [phase 7 evidence](PHASE_7_VALIDATION.md), [position evidence](POSITION_MANAGEMENT_VALIDATION.md).
 Vercel/OpenRouter preparation remains subject to real-host acceptance.

@@ -1,7 +1,8 @@
 # Local paper bridge and simulator
 
 Implemented on 12 October 2026, Europe/Rome. Scope is a disposable local paper
-laboratory. It has no MT5/broker adapter and makes no external API requests.
+laboratory. Its Python simulator makes no external API requests. The separate
+[MQL5 request adapter](MT5_BROKER_LOCAL.md) uses a synthetic terminal port only.
 Real Telegram, paid AI, remote deployment credentials and broker acceptance are
 deferred to the operator's final tests. A separate [local MQL5 bridge](MT5_LOCAL.md)
 now provides a simulation-only EA source; MetaEditor/terminal acceptance remains required.

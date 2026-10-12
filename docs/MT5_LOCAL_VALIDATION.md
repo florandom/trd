@@ -1,5 +1,8 @@
 # MQL5 local bridge validation — source and simulation
 
+This records the original bridge delivery. The later request-adapter extension and
+its current evidence are documented in [MT5 broker adapter validation](MT5_BROKER_VALIDATION.md).
+
 Date: 12 October 2026, Europe/Rome. Delivered scope: a disabled-by-default native
 EA source, portable source-level execution tests and a temporary native-test laboratory.
 No broker adapter, external account API call or actual MT5 execution is certified.

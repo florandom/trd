@@ -15,7 +15,9 @@ results and uncertain-outcome retention. All remain local-only.
 The [local MQL5 bridge](docs/MT5_LOCAL.md) provides a disabled-by-default simulation
 EA source. `pnpm mt5:accept` exercises that source with a portable C++ platform shim
 and disposable PostgreSQL; `pnpm mt5:lab --output-dir` prepares a private native-test
-laboratory. MetaEditor/terminal compilation and broker/demo acceptance are separate gates.
+laboratory. The [MT5 request adapter](docs/MT5_BROKER_LOCAL.md) now maps approved
+orders to MqlTradeRequest and handles synthetic broker preflight/results. Native
+broker calls remain excluded; MetaEditor/terminal and broker/demo acceptance are gates.
 
 Preparation before phase 6 adds Vercel packaging, independent environments,
 Cloudflare Access/MFA identity checks and gated OpenRouter integration. The persistent

@@ -20,7 +20,7 @@ Apri il [diagramma interattivo](FLUSSO_SISTEMA.html) nel browser per esplorare o
 | Analisi e decisione IA | Consultive; simulatore disponibile, senza dati di mercato verificati |
 | OpenRouter e accesso remoto | Implementati e verificati con dati di prova; account, dominio, MFA e collaudo reale ancora richiesti |
 | Rischio e posizioni simulate | Aperture, stop, chiusure complete, risultati e recupero verificati nel laboratorio locale |
-| Bridge MT5 e broker | Sorgente e logica simulata verificati; compilazione nativa e adattatore broker ancora richiesti |
+| Bridge e adattatore MT5 | Aperture, stop, chiusure ed esiti del broker verificati in simulazione; terminale e conto demo da collaudare |
 
 ## Accedere e scegliere le fonti
 
@@ -74,9 +74,9 @@ In **Posizioni**, ADMIN usa **Gestisci simulazione** per rivedere e confermare c
 
 In **Impostazioni** scegli la conservazione. Il team avvia la pulizia dei contenuti Telegram e IA a piccoli lotti; la pulizia automatica periodica e quella dei log per età non sono disponibili. La rotazione dei log per dimensione è attiva.
 
-Nei test finali il team collega Telegram, OpenRouter e accesso remoto, verificando lettura, budget, privacy e MFA. Per il broker servono adattatore MT5, riconciliazione e demo; live richiede autorizzazioni aggiuntive.
+Nei test finali il team collega Telegram, OpenRouter e accesso remoto, verificando lettura, budget, privacy e MFA. L’adattatore MT5 prepara gli ordini in simulazione; collegamento al broker, riconciliazione reale e demo richiedono ancora collaudo. Live richiede autorizzazioni aggiuntive.
 
-**Bridge MT5** spento all’avvio; logica simulata verificata, compilazione e terminale da collaudare.
+**Bridge MT5** spento all’avvio. Timeout o risposta parziale fermano nuove aperture e conservano il rischio; ricevuta e accettazione non confermano l’esecuzione. Credenziali esterne riservate ai test finali.
 
 ## Cronologia delle revisioni
 
@@ -97,3 +97,5 @@ Nei test finali il team collega Telegram, OpenRouter e accesso remoto, verifican
 12 ottobre 2026 — Posizioni paper, risultati e ripresa controllata verificati.
 
 12 ottobre 2026 — Bridge MT5 locale: sorgente e simulazione verificati; terminale e broker da collaudare.
+
+12 ottobre 2026 — Adattatore MT5 e recupero verificati in simulazione; broker e credenziali ai test finali.

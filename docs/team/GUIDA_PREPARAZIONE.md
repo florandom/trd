@@ -17,7 +17,7 @@ Questa guida raccoglie le azioni di preparazione; i contratti completi restano n
 | Vercel e Cloudflare | Due progetti, domini stabili, IdP con MFA e claim firmato, tunnel API e service token distinti |
 | OpenRouter | Account e chiave per ambiente, credito, prezzi, provider e limiti verificati |
 | Server e backup | Windows persistente o backend Linux, stato privato, backup cifrati e prova di ripristino |
-| MT5 | Bridge locale in sorgente; MetaEditor e terminale da collaudare. Broker demo futuro |
+| MT5 | Bridge e adattatore ordini simulati; compilazione, collegamento nativo e broker demo da collaudare |
 | Bot avvisi | Futuro e separato dalla lettura Telegram |
 
 Staging e produzione usano **istanze PostgreSQL, porte, volumi, directory, chiavi e account indipendenti**. Database diversi nello stesso cluster non permettono password diverse per gli stessi ruoli. Account Telegram distinti evitano collector non coordinati fra ambienti.
@@ -111,9 +111,11 @@ Il laboratorio gestisce EURUSD con conto USD sintetico. In **Posizioni**, ADMIN 
 
 ## Bridge MT5 nel laboratorio
 
-`pnpm mt5:accept` verifica il sorgente MQL5 con un banco di prova C++ e PostgreSQL temporaneo: firme, aperture, stop, chiusure e recupero. Servono Docker e compilatore C++; non account esterni. Non certifica MetaEditor, Windows o il terminale.
+`pnpm mt5:accept` verifica il sorgente MQL5 con un banco di prova C++ e PostgreSQL temporaneo: firme, richieste MT5, aperture, stop, chiusure e recupero. Servono Docker e compilatore C++; non account esterni. Non certifica MetaEditor, Windows o il terminale.
 
-Per la futura prova nativa, usa `pnpm mt5:lab --output-dir` con una nuova cartella privata: avvia il laboratorio temporaneo e prepara sorgenti e configurazione. Copia TRD in MQL5/Experts e config.json in MQL5/Files/TRD-LAB; compila e collega TrdLocalBridge. Autorizza solo l’origine loopback indicata; imposta **ActivateLocalSimulation=true**, lasciando **LocalCrashPoint** vuoto. Non usare Strategy Tester: WebRequest non è disponibile.
+L’adattatore costruisce richieste native di apertura con stop allegati, modifica degli stop e chiusura completa sul ticket corrente. Accetta solo il profilo sintetico EURUSD/USD con conto hedging e riempimento completo FOK. Preflight e risposta persistono nel registro. Timeout, accettazione senza evidenza e risposta parziale conservano il rischio, fermano nuove richieste e restano irrisolti dopo il riavvio; un rifiuto prima dell’invio libera solo il rischio non inviato. [Contratto e scenari](../MT5_BROKER_LOCAL.md).
+
+Per la futura prova nativa, usa `pnpm mt5:lab --output-dir` con una nuova cartella privata: avvia il laboratorio temporaneo e prepara sorgenti e configurazione. Copia TRD in MQL5/Experts e config.json in MQL5/Files/TRD-LAB; compila e collega TrdLocalBridge. Autorizza solo l’origine loopback indicata; imposta **ActivateLocalSimulation=true**, lasciando **LocalCrashPoint** e **LocalBrokerScenario** vuoti. Non usare Strategy Tester: WebRequest non è disponibile.
 
 Il conto resta sintetico EURUSD/USD, con quotazioni fisse e sessione limitata al giorno UTC. Chiavi locali generate, mai account broker; configura i permessi della cartella per il solo operatore. Registri in Common/Files, lock esclusivo, nessun reinvio di esiti incerti. All’uscita il server e i dati temporanei vengono rimossi; rimuovi anche la copia di config.json dal terminale. [Procedura completa e limiti](../MT5_LOCAL.md).
 
@@ -155,7 +157,7 @@ Windows: `New-NativeServiceTemplates.ps1 -BackendOnly` con prefissi, porte e dir
 
 ## Capacità ancora da implementare
 
-L’adattatore broker MT5 richiede implementazione e collaudo demo sul terminale Windows. Credenziali broker solo nel terminale; chiavi bridge distinte. Live, ordini pendenti e chiusure parziali restano disabilitati. Il bot degli avvisi resta futuro. [Architettura](../ARCHITECTURE.md).
+Il nucleo dell’adattatore MT5 è implementato e verificato in simulazione. Le chiamate native al broker restano escluse: occorrono collegamento dedicato, dati reali di conto, mercato e storico, riconciliazione e collaudo demo Windows. Credenziali broker solo nel terminale ai test finali; chiavi bridge distinte. Live, ordini pendenti e chiusure parziali restano disabilitati. Il bot degli avvisi resta futuro. [Architettura](../ARCHITECTURE.md).
 
 ## Aggiornare solo quando necessario
 
@@ -182,3 +184,5 @@ Data Europe/Rome, breve voce in cronologia e Word corrispondente per ogni guida 
 12 ottobre 2026 — Stop, chiusure complete, storico e ripresa paper verificati; migrazione, diagrammi e Word aggiornati.
 
 12 ottobre 2026 — Bridge MQL5 locale e banco di prova verificati; compilazione nativa e broker ancora richiesti.
+
+12 ottobre 2026 — Nucleo adattatore ordini MT5, preflight e risposte persistenti verificati in simulazione. Esiti incerti bloccano nuove richieste; API e credenziali esterne ai test finali.
