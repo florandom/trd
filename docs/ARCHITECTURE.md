@@ -7,7 +7,9 @@ adds confirmed full closes, protective updates and controlled resume. The
 [MQL5 local bridge](MT5_LOCAL.md) now has a simulation-only EA source and a portable
 platform harness. Its [MT5 request adapter](MT5_BROKER_LOCAL.md) prepares market,
 protective-update and targeted-close requests through a synthetic terminal port;
-native terminal calls, MetaEditor/terminal and real broker acceptance remain gates.
+the separate [native local reader](MT5_NATIVE_LOCAL.md) now observes account, market,
+portfolio/history and transactions with submission excluded. MetaEditor/terminal
+and real broker acceptance remain gates.
 [Paper bridge](PAPER_BRIDGE.md),
 [phase 7 evidence](PHASE_7_VALIDATION.md), [position evidence](POSITION_MANAGEMENT_VALIDATION.md).
 Vercel/OpenRouter preparation remains subject to real-host acceptance.

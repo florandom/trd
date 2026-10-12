@@ -91,7 +91,7 @@ def flow():
     parts += text(
         26,
         454,
-        ["LABORATORIO VERIFICATO  ·  Adattatore MT5 simulato; terminale da collaudare"],
+        ["SORGENTI VERIFICATI  ·  Ordini paper e lettura MT5 separati"],
         20,
         "#596a80",
         700,
@@ -123,18 +123,18 @@ def flow():
         482,
         350,
         100,
-        "Terminale e broker reale",
-        ["Collaudo nativo e demo futuri"],
+        "MT5 sola lettura",
+        ["Conto e storico; invio escluso"],
         "#f4f7fa",
         "#b1bdc9",
-        True,
+        False,
     )
-    parts += arrow("M 378 532 H 416") + arrow("M 779 532 H 816", True)
+    parts += arrow("M 378 532 H 416")
     return svg(
         parts,
         610,
         "Come TRD tratta un segnale",
-        "Telegram autorizzato, raccolta, interpretazione rigorosa, agenti consultivi e dashboard. Rischio, bridge firmato e adattatore ordini MT5 sono verificati in simulazione. Compilazione nativa, terminale e broker restano da collaudare.",
+        "Telegram autorizzato, raccolta, interpretazione rigorosa, agenti consultivi e dashboard. Rischio e ordini paper verificati in simulazione. Lettore MT5 nativo separato in sorgente; non invia ordini né aggiorna il conto paper. Compilazione, terminale e demo restano da collaudare.",
     )
 
 
@@ -193,7 +193,7 @@ def components():
     parts += text(
         25,
         472,
-        ["Adattatore MT5 simulato. Terminale, broker e avvisi restano da collaudare."],
+        ["MT5 di sola lettura in sorgente. Ordini reali e avvisi restano futuri."],
         22,
         "#7a4d12",
         700,
@@ -202,7 +202,7 @@ def components():
         parts,
         500,
         "Componenti e responsabilità di TRD",
-        "Dashboard e API autenticate, PostgreSQL e processi separati per Telegram, IA e manutenzione. Credenziali separate. Bridge e adattatore ordini MT5 verificati in simulazione; terminale nativo, account esterni e avvisi restano da collaudare.",
+        "Dashboard e API autenticate, PostgreSQL e processi separati. Credenziali separate. Bridge paper e lettore nativo MT5 verificati con dati simulati; invio reale escluso. Terminale, account esterni e avvisi restano da collaudare.",
     )
 
 
@@ -263,9 +263,9 @@ def html(flow_svg):
         + flow_svg
         + '<ol class="mobile-flow" aria-label="Sequenza del segnale">'
         + mobile
-        + """</ol><figcaption>Il percorso parte solo con fonte autorizzata, account collegato e agenti necessari attivi. Un controllo non superato ferma l’analisi; l’esito resta visibile nella dashboard. Il laboratorio separato verifica rischio e ordini simulati. L’adattatore MT5 è verificato in simulazione; il collegamento tratteggiato richiede compilazione nativa, collegamento broker e demo.</figcaption></figure></section><section id="passaggi"><h2>Esplora i cinque passaggi</h2><p>Apri un passaggio per vedere cosa succede e chi lo prepara.</p><div class="steps">"""
+        + """</ol><figcaption>Il percorso parte solo con fonte autorizzata, account collegato e agenti necessari attivi. Un controllo non superato ferma l’analisi; l’esito resta visibile nella dashboard. Il laboratorio separato verifica rischio e ordini simulati. Ordini paper e lettura MT5 sono separati. Il lettore nativo è in sorgente e non invia ordini; compilazione nel terminale e collaudo demo restano richiesti.</figcaption></figure></section><section id="passaggi"><h2>Esplora i cinque passaggi</h2><p>Apri un passaggio per vedere cosa succede e chi lo prepara.</p><div class="steps">"""
         + details
-        + """</div></section><section id="regole"><h2>Regole e costi</h2><div class="columns"><article><h3>Prima di una proposta</h3><ul><li>Fonte autorizzata e account con accesso al canale.</li><li>Un solo segnale completo, iniziale e recente.</li><li>Direzione, ingresso, stop loss e take profit coerenti.</li><li>Agenti richiesti configurati; nessuna fase obbligatoria saltata.</li></ul><p>Formato sintetico, solo illustrativo:</p><code class="example">BUY EURUSD ENTRY 1.10000 SL 1.09500 TP 1.11000</code><p>Strumenti riconosciuti nel testo: EURUSD, GBPUSD, USDJPY, USDCHF, AUDUSD, USDCAD, NZDUSD. Nessuna autorizzazione finanziaria deriva da questo elenco.</p></article><article><h3>IA esterna e spesa</h3><p>Classificazione e interpretazione restano locali. OpenRouter può servire analisi, decisione e critica dopo collaudo, import del modello e selezione confermata. Al fornitore arriva la proposta normalizzata, non il testo Telegram completo.</p><ul><li>Simulatore: costo zero e risposta di attesa.</li><li>Modello esterno: approvazione valida, costo massimo e budget server.</li><li>Consumo sconosciuto: importo trattenuto e altri tentativi fermati.</li><li>Riavvio: nessuno sblocco automatico delle prenotazioni.</li></ul><p>Le credenziali restano nei servizi competenti. La dashboard mostra esiti e costi; le modifiche richiedono conferma.</p></article></div></section><section id="futuro"><h2>Cosa manca per operare sul mercato</h2><div class="columns"><article><h3>Configurazioni e prove reali</h3><p>Telegram, OpenRouter e accesso remoto sono implementati e verificati con dati di prova. Servono account autorizzati, verifiche di privacy e fatturazione, dominio protetto e MFA, oltre al collaudo sul server reale.</p><p>Le fonti si configurano dalla dashboard. Il collegamento Telegram resta una procedura locale del team; il bot degli avvisi è una funzione futura separata.</p></article><article><h3>Rischio ed esecuzione simulata verificati</h3><p>Il motore del rischio è implementato e verificato con dati di prova: valuta conto, mercato, stop, lotti e limiti. Il laboratorio locale collega dati firmati, prenotazioni, comandi, stop, chiusure complete e riconciliazione. Non richiede account esterni e non invia ordini reali. Il bridge e l’adattatore ordini MT5 sono verificati con una piattaforma simulata: aperture, stop, chiusure ed esiti incerti. Le chiamate al broker restano escluse; collegamento nativo, riconciliazione reale e conto demo richiedono ancora collaudo.</p><p>I limiti nella dashboard sono preparatori e possono essere resi più restrittivi. Il trading reale richiederà autorizzazioni indipendenti dopo i test demo: nessun risultato IA può abilitarlo.</p></article></div></section><footer>Revisione del 12 ottobre 2026 · Europe/Rome · File autonomo senza servizi esterni. Per le procedure usa la guida cliente o la guida di preparazione del team.</footer></main></body></html>"""
+        + """</div></section><section id="regole"><h2>Regole e costi</h2><div class="columns"><article><h3>Prima di una proposta</h3><ul><li>Fonte autorizzata e account con accesso al canale.</li><li>Un solo segnale completo, iniziale e recente.</li><li>Direzione, ingresso, stop loss e take profit coerenti.</li><li>Agenti richiesti configurati; nessuna fase obbligatoria saltata.</li></ul><p>Formato sintetico, solo illustrativo:</p><code class="example">BUY EURUSD ENTRY 1.10000 SL 1.09500 TP 1.11000</code><p>Strumenti riconosciuti nel testo: EURUSD, GBPUSD, USDJPY, USDCHF, AUDUSD, USDCAD, NZDUSD. Nessuna autorizzazione finanziaria deriva da questo elenco.</p></article><article><h3>IA esterna e spesa</h3><p>Classificazione e interpretazione restano locali. OpenRouter può servire analisi, decisione e critica dopo collaudo, import del modello e selezione confermata. Al fornitore arriva la proposta normalizzata, non il testo Telegram completo.</p><ul><li>Simulatore: costo zero e risposta di attesa.</li><li>Modello esterno: approvazione valida, costo massimo e budget server.</li><li>Consumo sconosciuto: importo trattenuto e altri tentativi fermati.</li><li>Riavvio: nessuno sblocco automatico delle prenotazioni.</li></ul><p>Le credenziali restano nei servizi competenti. La dashboard mostra esiti e costi; le modifiche richiedono conferma.</p></article></div></section><section id="futuro"><h2>Cosa manca per operare sul mercato</h2><div class="columns"><article><h3>Configurazioni e prove reali</h3><p>Telegram, OpenRouter e accesso remoto sono implementati e verificati con dati di prova. Servono account autorizzati, verifiche di privacy e fatturazione, dominio protetto e MFA, oltre al collaudo sul server reale.</p><p>Le fonti si configurano dalla dashboard. Il collegamento Telegram resta una procedura locale del team; il bot degli avvisi è una funzione futura separata.</p></article><article><h3>Rischio ed esecuzione simulata verificati</h3><p>Il motore del rischio è implementato e verificato con dati di prova: valuta conto, mercato, stop, lotti e limiti. Il laboratorio locale collega dati firmati, prenotazioni, comandi, stop, chiusure complete e riconciliazione. Non richiede account esterni e non invia ordini reali. Il bridge e l’adattatore MT5 verificano ordini simulati. Il nuovo collegamento nativo è un lettore separato di conto, mercato, posizioni e storico; registra localmente e non aggiorna il conto paper. Invio broker escluso nel codice. Sorgente verificato con API terminale simulate; compilazione, terminale reale e demo restano da collaudare.</p><p>I limiti nella dashboard sono preparatori e possono essere resi più restrittivi. Il trading reale richiederà autorizzazioni indipendenti dopo i test demo: nessun risultato IA può abilitarlo.</p></article></div></section><footer>Revisione del 12 ottobre 2026 · Europe/Rome · File autonomo senza servizi esterni. Per le procedure usa la guida cliente o la guida di preparazione del team.</footer></main></body></html>"""
     )
 
 

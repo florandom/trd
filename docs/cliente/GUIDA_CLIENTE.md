@@ -20,7 +20,7 @@ Apri il [diagramma interattivo](FLUSSO_SISTEMA.html) nel browser per esplorare o
 | Analisi e decisione IA | Consultive; simulatore disponibile, senza dati di mercato verificati |
 | OpenRouter e accesso remoto | Implementati e verificati con dati di prova; account, dominio, MFA e collaudo reale ancora richiesti |
 | Rischio e posizioni simulate | Aperture, stop, chiusure complete, risultati e recupero verificati nel laboratorio locale |
-| Bridge e adattatore MT5 | Aperture, stop, chiusure ed esiti del broker verificati in simulazione; terminale e conto demo da collaudare |
+| Bridge e MT5 nativo | Ordini simulati e lettura nativa in sorgente; invio escluso. Terminale e demo da collaudare |
 
 ## Accedere e scegliere le fonti
 
@@ -74,9 +74,9 @@ In **Posizioni**, ADMIN usa **Gestisci simulazione** per rivedere e confermare c
 
 In **Impostazioni** scegli la conservazione. Il team avvia la pulizia dei contenuti Telegram e IA a piccoli lotti; la pulizia automatica periodica e quella dei log per età non sono disponibili. La rotazione dei log per dimensione è attiva.
 
-Nei test finali il team collega Telegram, OpenRouter e accesso remoto, verificando lettura, budget, privacy e MFA. L’adattatore MT5 prepara gli ordini in simulazione; collegamento al broker, riconciliazione reale e demo richiedono ancora collaudo. Live richiede autorizzazioni aggiuntive.
+Nei test finali il team collauda Telegram, OpenRouter e accesso remoto, verificando lettura, budget, privacy e MFA. Live richiede autorizzazioni aggiuntive.
 
-**Bridge MT5** spento all’avvio. Timeout o risposta parziale fermano nuove aperture e conservano il rischio; ricevuta e accettazione non confermano l’esecuzione. Credenziali esterne riservate ai test finali.
+**MT5 nativo** spento all’avvio: osserva conto, mercato e storico in un registro locale privato. Non invia ordini né aggiorna il conto paper. Credenziali solo nel terminale ai test finali.
 
 ## Cronologia delle revisioni
 
@@ -99,3 +99,5 @@ Nei test finali il team collega Telegram, OpenRouter e accesso remoto, verifican
 12 ottobre 2026 — Bridge MT5 locale: sorgente e simulazione verificati; terminale e broker da collaudare.
 
 12 ottobre 2026 — Adattatore MT5 e recupero verificati in simulazione; broker e credenziali ai test finali.
+
+12 ottobre 2026 — Lettura nativa MT5 in sorgente verificata con dati simulati; invio broker escluso.

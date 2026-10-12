@@ -4,7 +4,9 @@ Revision: 12 October 2026, Europe/Rome. The MQL5 EA now translates approved open
 stop-update and full-close commands into **MqlTradeRequest**. A synthetic terminal
 port exercises broker checks, replies and independent durable history. Real terminal
 account/market/history calls and native OrderCheck/OrderSend are excluded from the
-compiled source. No external API, account credentials, native MT5 acceptance or broker
+paper EA build. A separate [native local reader](MT5_NATIVE_LOCAL.md) now provides
+terminal observations and buffering without submission or paper authority.
+No external API, account credentials, native MT5 acceptance or broker
 execution is claimed. The normal installation remains disabled; final external
 tests and credentials remain the operator's responsibility.
 
@@ -89,8 +91,9 @@ economic execution. Unknown results block further command polling and complete
 account snapshots, preventing a fabricated empty/full portfolio. Outbox uploads
 can continue. Native terminal transactions remain ignored by this simulation build
 and cannot become authenticated laboratory evidence. Full broker-history and cash-flow
-reconciliation, native transaction buffering and accepted manual resolution require
-the later native port; there is no local shortcut that clears uncertain exposure.
+reconciliation and accepted manual resolution still require an execution-capable
+native port. Native buffering is now implemented by the separate read-only observer;
+it cannot clear this laboratory's uncertain exposure.
 
 ## Repeatable tests
 

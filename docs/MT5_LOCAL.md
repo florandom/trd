@@ -8,6 +8,11 @@ a synthetic terminal port. Native `OrderSend`/`OrderCheck` calls, trading librar
 broker-account login, external URLs and DLL imports are excluded from this build.
 MetaEditor compilation, the actual MT5 runtime and Windows acceptance are still gates.
 
+The separate [native read-only connection](MT5_NATIVE_LOCAL.md) now reads terminal
+account/market/portfolio/history and buffers transactions into a private local journal.
+It has no submission or HTTP calls and cannot supply paper snapshots. Its source-level
+native API fixture tests are separate from native MetaEditor/terminal acceptance.
+
 ## Components and authority
 
 - `apps/mt5/Experts/TrdLocalBridge.mq5`: disabled-by-default `OnInit`/two-second
@@ -128,8 +133,9 @@ semantics remain acceptance items. Capacity is bounded (1000 commands/results,
 [Official FileFlush reference](https://www.mql5.com/en/docs/files/fileflush).
 
 `OnTradeTransaction` makes no network calls and cannot turn unrelated terminal trades
-into lab evidence. Real broker adapters must separately buffer and reconcile terminal
-transactions, ownership and cash flows before any demo/live gate passes.
+into lab evidence. The separate native reader now buffers terminal notifications
+and observes history/cash flows locally; native acceptance and execution-authoritative
+ownership/economic reconciliation remain required before any demo/live gate passes.
 [Official transaction handler constraints](https://www.mql5.com/en/docs/event_handlers/ontradetransaction).
 
 ## Remaining implementation and native acceptance

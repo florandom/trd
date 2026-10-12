@@ -17,7 +17,7 @@ Questa guida raccoglie le azioni di preparazione; i contratti completi restano n
 | Vercel e Cloudflare | Due progetti, domini stabili, IdP con MFA e claim firmato, tunnel API e service token distinti |
 | OpenRouter | Account e chiave per ambiente, credito, prezzi, provider e limiti verificati |
 | Server e backup | Windows persistente o backend Linux, stato privato, backup cifrati e prova di ripristino |
-| MT5 | Bridge e adattatore ordini simulati; compilazione, collegamento nativo e broker demo da collaudare |
+| MT5 | Bridge paper e lettore nativo in sorgente; compilazione, terminale e demo da collaudare. Invio escluso |
 | Bot avvisi | Futuro e separato dalla lettura Telegram |
 
 Staging e produzione usano **istanze PostgreSQL, porte, volumi, directory, chiavi e account indipendenti**. Database diversi nello stesso cluster non permettono password diverse per gli stessi ruoli. Account Telegram distinti evitano collector non coordinati fra ambienti.
@@ -119,6 +119,10 @@ Per la futura prova nativa, usa `pnpm mt5:lab --output-dir` con una nuova cartel
 
 Il conto resta sintetico EURUSD/USD, con quotazioni fisse e sessione limitata al giorno UTC. Chiavi locali generate, mai account broker; configura i permessi della cartella per il solo operatore. Registri in Common/Files, lock esclusivo, nessun reinvio di esiti incerti. All’uscita il server e i dati temporanei vengono rimossi; rimuovi anche la copia di config.json dal terminale. [Procedura completa e limiti](../MT5_LOCAL.md).
 
+Il collegamento nativo è un EA separato di **sola lettura**: `pnpm mt5:native:accept` verifica il sorgente con API terminale simulate; `pnpm mt5:native:prepare --output-dir` prepara una nuova cartella privata, senza leggere `.env` o usare credenziali. Nei test finali compila TrdNativeReadOnly, imposta login/server DEMO e simbolo esatti, conserva NativeJournal e abilita **ActivateNativeReadOnly**. Credenziali solo nel terminale; nessuna chiave bridge, URL o permesso di invio richiesto.
+
+Legge conto, quotazioni, tutte le posizioni e gli ordini, e una finestra di storico broker di un’ora, configurabile fra 60 secondi e 24 ore. Buffer delle transazioni e registro privato esclusivo in Common/Files/TRD-NATIVE; proteggi la cartella con ACL. Conti REAL/CONTEST, dati incompleti, cambi di identità, overflow e guasti del registro fermano l’osservazione. Lo storico parziale non prova proprietà o riconciliazione completa; dati nativi mai usati come paper. Invio broker escluso nel codice anche con i permessi attivi. [Procedura e limiti](../MT5_NATIVE_LOCAL.md).
+
 ## Abilitare OpenRouter dopo il collaudo
 
 1. Mantieni `AI_PROVIDER_MODE=mock`. Prepara account dedicato, `OPENROUTER_API_KEY`, credito e limiti dell’account; configura i quattro budget server positivi per il probe.
@@ -157,7 +161,7 @@ Windows: `New-NativeServiceTemplates.ps1 -BackendOnly` con prefissi, porte e dir
 
 ## Capacità ancora da implementare
 
-Il nucleo dell’adattatore MT5 è implementato e verificato in simulazione. Le chiamate native al broker restano escluse: occorrono collegamento dedicato, dati reali di conto, mercato e storico, riconciliazione e collaudo demo Windows. Credenziali broker solo nel terminale ai test finali; chiavi bridge distinte. Live, ordini pendenti e chiusure parziali restano disabilitati. Il bot degli avvisi resta futuro. [Architettura](../ARCHITECTURE.md).
+Adattatore paper e lettore nativo MT5 sono implementati e verificati con dati simulati. Restano compilazione MetaEditor, terminale Windows, dati reali e riconciliazione completa da collaudare. L’invio nativo è escluso; una futura esecuzione richiede gate indipendenti e conto demo verificato. Credenziali solo nel terminale ai test finali. Live, ordini pendenti, chiusure parziali e bot avvisi restano futuri. [Architettura](../ARCHITECTURE.md).
 
 ## Aggiornare solo quando necessario
 
@@ -186,3 +190,5 @@ Data Europe/Rome, breve voce in cronologia e Word corrispondente per ogni guida 
 12 ottobre 2026 — Bridge MQL5 locale e banco di prova verificati; compilazione nativa e broker ancora richiesti.
 
 12 ottobre 2026 — Nucleo adattatore ordini MT5, preflight e risposte persistenti verificati in simulazione. Esiti incerti bloccano nuove richieste; API e credenziali esterne ai test finali.
+
+12 ottobre 2026 — Collegamento nativo di sola lettura, buffer e registro locale verificati con API simulate; invio escluso, credenziali e demo ai test finali.

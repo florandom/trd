@@ -17,7 +17,13 @@ EA source. `pnpm mt5:accept` exercises that source with a portable C++ platform 
 and disposable PostgreSQL; `pnpm mt5:lab --output-dir` prepares a private native-test
 laboratory. The [MT5 request adapter](docs/MT5_BROKER_LOCAL.md) now maps approved
 orders to MqlTradeRequest and handles synthetic broker preflight/results. Native
-broker calls remain excluded; MetaEditor/terminal and broker/demo acceptance are gates.
+order submission and preflight remain excluded; MetaEditor/terminal and broker/demo acceptance are gates.
+
+The [native read-only connection](docs/MT5_NATIVE_LOCAL.md) adds terminal account,
+market, portfolio/history and transaction observations to a private local journal.
+`pnpm mt5:native:accept` tests its actual source with native API fixtures;
+`pnpm mt5:native:prepare --output-dir` prepares a disabled private source bundle.
+It does not send orders, publish native data as paper or use external credentials.
 
 Preparation before phase 6 adds Vercel packaging, independent environments,
 Cloudflare Access/MFA identity checks and gated OpenRouter integration. The persistent

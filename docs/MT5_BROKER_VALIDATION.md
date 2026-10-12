@@ -1,5 +1,8 @@
 # Local MT5 request adapter validation
 
+This records the request-adapter delivery. The subsequent native read-only connection
+and its current evidence are in [native validation](MT5_NATIVE_VALIDATION.md).
+
 Date: 12 October 2026, Europe/Rome. Delivered scope: MQL5 request construction,
 synthetic terminal preflight/replies and durable conservative recovery through the
 existing authenticated paper gateway. Native broker calls remain absent. No `.ex5`,
