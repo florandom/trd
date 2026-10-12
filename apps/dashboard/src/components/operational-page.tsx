@@ -30,7 +30,7 @@ export const PAGES: Record<string, {title: string; description: string}> = {
   risk: {
     title: 'Controlli del rischio',
     description:
-      'Motore di rischio verificato con dati di prova. I limiti restano preparatori: conto, mercato e servizio di esecuzione devono ancora essere collegati.',
+      'Rischio ed esecuzione verificati nel laboratorio locale con ordini simulati. I limiti non abilitano il trading reale; MT5 e conto broker richiedono ancora collaudo.',
   },
   agents: {
     title: 'Agenti IA',
@@ -95,6 +95,10 @@ const ACTION: Record<string, string> = {
   TELEGRAM_MESSAGE_EDIT: 'Messaggio Telegram modificato',
   TELEGRAM_MESSAGE_DELETE: 'Cancellazione Telegram registrata',
   MESSAGE_ANALYSIS_COMPLETED: 'Analisi del messaggio registrata',
+  PAPER_BRIDGE_FAULT: 'Simulazione fermata: dati da verificare',
+  PAPER_DAILY_LOSS_LATCHED: 'Simulazione fermata al limite di perdita giornaliera',
+  PAPER_COMMAND_RESERVED: 'Rischio prenotato per un ordine simulato',
+  PAPER_BROKER_FILL: 'Esecuzione simulata confermata',
   BOOTSTRAP_DOMAIN_DEFAULTS_CREATED: 'Configurazioni iniziali create',
   BOOTSTRAP_ADMIN_CREATED: 'Amministratore iniziale creato',
   BOOTSTRAP_DEFAULTS_CREATED: 'Impostazioni iniziali create',

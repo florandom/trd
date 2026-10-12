@@ -86,6 +86,7 @@ class RiskReason(StrEnum):
     SYMBOL_EXPOSURE_LIMIT = "SYMBOL_EXPOSURE_LIMIT"
     LEVERAGE_LIMIT = "LEVERAGE_LIMIT"
     MARGIN_LIMIT = "MARGIN_LIMIT"
+    RESERVED_RISK_LIMIT = "RESERVED_RISK_LIMIT"
     DAILY_BASELINE_UNAVAILABLE = "DAILY_BASELINE_UNAVAILABLE"
     DAILY_LOSS_LIMIT = "DAILY_LOSS_LIMIT"
     DAILY_LOSS_LATCHED = "DAILY_LOSS_LATCHED"
@@ -250,6 +251,7 @@ class ReservationExposure(Contract):
     notional_amount: PositiveDecimal
     margin_amount: NonnegativeDecimal
     state: Literal["HELD", "SUBMITTED", "UNKNOWN"]
+    volume: PositiveDecimal | None = None
 
 
 class ServiceHealth(Contract):
@@ -409,6 +411,7 @@ class RiskCalculations(Contract):
     loss_per_lot: PositiveDecimal | None = None
     candidate_volume: NonnegativeDecimal | None = None
     estimated_trade_risk: NonnegativeDecimal | None = None
+    estimated_trade_notional: NonnegativeDecimal | None = None
     existing_open_risk: NonnegativeDecimal | None = None
     total_open_risk: NonnegativeDecimal | None = None
     total_notional: NonnegativeDecimal | None = None

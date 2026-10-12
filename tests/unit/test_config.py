@@ -40,6 +40,36 @@ def test_foundation_cannot_authorize_execution(override):
 
 
 @pytest.mark.parametrize(
+    "override",
+    [
+        {"app_env": "production"},
+        {"app_env": "staging"},
+        {"paper_request_key": "11" * 32, "paper_response_key": "11" * 32},
+        {"paper_request_key": "invalid"},
+        {"paper_profile_path": None},
+    ],
+)
+def test_paper_gate_requires_local_profile_and_separate_keys(tmp_path, override):
+    profile = tmp_path / "profile.json"
+    profile.write_text("{}")
+    values = config(
+        "risk",
+        paper_bridge_enabled=True,
+        paper_profile_path=profile,
+        paper_request_key="11" * 32,
+        paper_response_key="22" * 32,
+    )
+    values.update(override)
+    with pytest.raises(ValidationError):
+        BridgeSettings(**values)
+
+
+def test_paper_gate_defaults_off_and_keys_are_not_api_configuration():
+    assert BridgeSettings(**config("risk")).paper_bridge_enabled is False
+    assert not hasattr(ApiSettings(**config()), "paper_request_key")
+
+
+@pytest.mark.parametrize(
     "url",
     [
         "postgresql+psycopg://postgres:unshared-test-password@localhost:5432/trd",

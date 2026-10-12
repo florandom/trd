@@ -109,7 +109,7 @@ export const ANALYSIS_REASONS: Record<string, string> = {
   MOCK_ONLY: 'Valutazione del simulatore locale',
   NO_MARKET_CONTEXT: 'Dati di mercato verificati non disponibili',
   RISK_NOT_IMPLEMENTED: 'Verifica del rischio ancora da implementare',
-  RISK_GATEWAY_UNAVAILABLE: 'Rischio verificato in locale; collegamento all’esecuzione non disponibile',
+  RISK_GATEWAY_UNAVAILABLE: 'Proposta consultiva; esecuzione disponibile solo nel laboratorio paper locale',
 };
 export function analysisReasons(value: unknown): string {
   return Array.isArray(value)

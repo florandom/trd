@@ -132,4 +132,8 @@ class DashboardConfirmation(Base):
     consumed_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
 
 
+# Register domain tables before the additional bridge records.
+# isort: off
 from backend.infrastructure import domain_models as domain_models  # noqa: E402
+from backend.infrastructure import bridge_models as bridge_models  # noqa: E402
+# isort: on

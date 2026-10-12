@@ -272,6 +272,10 @@ class AiSettings(ServiceSettings):
 
 class BridgeSettings(ServiceSettings):
     service_name: Literal["risk"] = "risk"
+    paper_bridge_enabled: bool = False
+    paper_profile_path: Path | None = None
+    paper_request_key: SecretStr | None = None
+    paper_response_key: SecretStr | None = None
     hard_max_risk_per_trade: Decimal = Field(
         default=Decimal("0.01"), gt=0, le=1, allow_inf_nan=False
     )
@@ -310,6 +314,20 @@ class BridgeSettings(ServiceSettings):
 
     @model_validator(mode="after")
     def disabled_capabilities(self) -> BridgeSettings:
+        if self.paper_bridge_enabled:
+            import re
+
+            if (
+                self.app_env not in {"development", "test"}
+                or self.paper_profile_path is None
+                or not self.paper_profile_path.is_file()
+                or self.paper_request_key is None
+                or self.paper_response_key is None
+                or not re.fullmatch(r"[a-f0-9]{64}", self.paper_request_key.get_secret_value())
+                or not re.fullmatch(r"[a-f0-9]{64}", self.paper_response_key.get_secret_value())
+                or self.paper_request_key == self.paper_response_key
+            ):
+                raise ValueError("paper bridge requires a local profile and separate local keys")
         if self.enable_pending_orders or self.enable_partial_close:
             raise ValueError("Phase 1 has no broker execution capabilities")
         if self.app_env in {"staging", "production"}:

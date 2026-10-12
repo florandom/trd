@@ -7,7 +7,7 @@ from typing import Any, Protocol
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
-SCHEMA_REVISION = "0005b_remote_openrouter"
+SCHEMA_REVISION = "0007_paper_bridge"
 SERVICES = frozenset({"api", "collector", "ai", "risk", "maintenance"})
 HEARTBEAT_STATUSES = frozenset({"STARTING", "HEALTHY", "DEGRADED", "STOPPED"})
 ENVIRONMENT_PATTERN = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")

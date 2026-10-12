@@ -87,6 +87,10 @@ ROLE_FIELDS = {
         "ENABLE_ADAPTIVE_MEMORY",
     },
     "risk": {
+        "PAPER_BRIDGE_ENABLED",
+        "PAPER_PROFILE_PATH",
+        "PAPER_REQUEST_KEY",
+        "PAPER_RESPONSE_KEY",
         "MT5_BRIDGE_SHARED_SECRET",
         "MT5_COMMAND_SIGNING_KEY",
         "MT5_ALLOWED_ACCOUNT_IDS",

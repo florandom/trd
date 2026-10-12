@@ -288,6 +288,7 @@ def main() -> int:
             "new-env",
             "openrouter-accept",
             "openrouter-import",
+            "paper-accept",
         ],
     )
     parser.add_argument(
@@ -321,6 +322,11 @@ def main() -> int:
         if args.task == "generate-api":
             generate_api()
             return 0
+        if args.task == "paper-accept":
+            # Disposable run: no operator credentials or root .env are read.
+            from infra.scripts.paper_acceptance import main as paper_acceptance
+
+            return paper_acceptance()
         values = (
             dict(os.environ)
             if args.from_process

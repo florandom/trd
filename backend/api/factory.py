@@ -143,7 +143,11 @@ def create_app(
 
 
 def create_bridge_app(
-    settings: BridgeSettings, probe: Probe, heartbeat: HeartbeatHook | None = None
+    settings: BridgeSettings,
+    probe: Probe,
+    heartbeat: HeartbeatHook | None = None,
+    *,
+    engine: Engine | None = None,
 ) -> FastAPI:
     app = FastAPI(
         title="Isolated bridge foundation",
@@ -153,6 +157,14 @@ def create_bridge_app(
         openapi_url=None,
         lifespan=_lifespan(settings, probe, heartbeat),
     )
+
+    if settings.paper_bridge_enabled:
+        from backend.api.bridge import bridge_router
+        from backend.trading.gateway import PaperGateway
+
+        app.add_middleware(BodyLimit, maximum=65_536)
+        app.state.paper_gateway = PaperGateway(settings, engine)
+        app.include_router(bridge_router(app.state.paper_gateway))
 
     @app.get("/health/live", response_model=HealthLiveness, operation_id="bridge_health_live")
     def live(response: Response) -> HealthLiveness:

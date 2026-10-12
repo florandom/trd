@@ -48,6 +48,19 @@ class RiskEngine:
         market_state: object,
         effective_config: object,
     ) -> RiskResult:
+        return self._evaluate(proposal, account_state, market_state, effective_config)
+
+    def revalidate(
+        self, proposal, account_state, market_state, effective_config, *, reservation_id
+    ) -> RiskResult:
+        """Check unchanged economics, counting the command's verified hold exactly once."""
+        return self._evaluate(
+            proposal, account_state, market_state, effective_config, reservation_id
+        )
+
+    def _evaluate(
+        self, proposal, account_state, market_state, effective_config, reservation_id=None
+    ) -> RiskResult:
         try:
             with localcontext() as context:
                 context.prec = 80
@@ -77,7 +90,31 @@ class RiskEngine:
         try:
             with localcontext() as context:
                 context.prec = 80
-                return _Evaluation(request, account, market, config, evidence).run()
+                own = None
+                if reservation_id is not None:
+                    own = next(
+                        (r for r in account.reservations if r.reservation_id == reservation_id),
+                        None,
+                    )
+                    mapping = next(
+                        (m for m in config.allowed_instruments if m.symbol == request.symbol),
+                        None,
+                    )
+                    if (
+                        own is None
+                        or own.state != "HELD"
+                        or own.signal_id != request.signal_id
+                        or own.source_id != request.source_id
+                        or mapping is None
+                        or own.symbol != mapping.broker_symbol
+                        or request.requested_volume is None
+                        or own.volume != request.requested_volume
+                        or any(p.slot_id == own.slot_id for p in account.positions)
+                    ):
+                        return RiskResult(
+                            status="ERROR", reason_codes=(RiskReason.INVALID_INPUT,), **evidence
+                        )
+                return _Evaluation(request, account, market, config, evidence, own).run()
         except Exception:
             # Exception details may contain caller data. Return only a stable safe code.
             return RiskResult(
@@ -86,12 +123,13 @@ class RiskEngine:
 
 
 class _Evaluation:
-    def __init__(self, request, account, market, config, evidence):
+    def __init__(self, request, account, market, config, evidence, own=None):
         self.request: RiskProposal = request
         self.account: AccountState = account
         self.market: MarketState = market
         self.config: EffectiveRiskConfig = config
         self.evidence = evidence
+        self.own = own
         self.reasons: list[RiskReason] = []
         self.error = False
         self.latch = False
@@ -172,9 +210,9 @@ class _Evaluation:
         ):
             self.add(RiskReason.VERSION_MISMATCH)
         if (
-            p.signal_id in a.consumed_signal_ids
-            or p.message_id in a.consumed_message_ids
-            or any(r.signal_id == p.signal_id for r in a.reservations)
+            (self.own is None and p.signal_id in a.consumed_signal_ids)
+            or (self.own is None and p.message_id in a.consumed_message_ids)
+            or any(r.signal_id == p.signal_id and r != self.own for r in a.reservations)
         ):
             self.add(RiskReason.DUPLICATE_SIGNAL)
         required = {"SIGNAL_CLASSIFIER", "SIGNAL_PARSER", "MARKET_ANALYST", "DECISION_AGENT"}
@@ -373,6 +411,8 @@ class _Evaluation:
                 source_slots.add(p.slot_id)
         reserved_margin = ZERO
         for r in self.account.reservations:
+            if r == self.own:
+                continue
             # No expiry/acknowledgement releases a reservation. Remaining exposure is
             # supplied by the trusted projection; shared partial-fill slots count once.
             if r.state == "UNKNOWN":
@@ -464,6 +504,12 @@ class _Evaluation:
         trade_notional = ceil(volume * i.contract_size * max(high, q.ask) * rate)
         base_rate = ONE if i.base_currency == a.currency else max(high, q.ask) * rate
         margin = ceil(volume * i.contract_size / a.broker_leverage * i.margin_rate * base_rate)
+        if self.own is not None:
+            if trade_risk > self.own.risk_amount:
+                self.add(RiskReason.RESERVED_RISK_LIMIT)
+            trade_risk = max(trade_risk, self.own.risk_amount)
+            trade_notional = max(trade_notional, self.own.notional_amount)
+            margin = max(margin, self.own.margin_amount)
         existing, total, symbol_total, source_total, held_margin, slots, source_slots = portfolio
         available_margin = max(ZERO, a.free_margin - held_margin)
         self.values.update(
@@ -471,6 +517,7 @@ class _Evaluation:
             loss_per_lot=loss_per_lot,
             candidate_volume=volume,
             estimated_trade_risk=trade_risk,
+            estimated_trade_notional=trade_notional,
             existing_open_risk=existing,
             total_open_risk=existing + trade_risk,
             total_notional=total + trade_notional,

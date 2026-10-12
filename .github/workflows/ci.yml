@@ -171,7 +171,7 @@ jobs:
           '@ | uv run --frozen python -
       - name: Verify pure paper risk and timezone boundaries on Windows
         shell: pwsh
-        run: uv run --frozen pytest tests/unit/test_risk.py tests/unit/test_risk_calendar.py
+        run: uv run --frozen pytest tests/unit/test_risk.py tests/unit/test_risk_calendar.py tests/unit/test_risk_revalidation.py tests/unit/test_bridge_protocol.py tests/unit/test_paper_simulator.py
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:

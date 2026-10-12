@@ -19,6 +19,7 @@
     "env:new": "node infra/scripts/python-task.mjs new-env",
     "ai:accept": "node infra/scripts/python-task.mjs openrouter-accept",
     "ai:import": "node infra/scripts/python-task.mjs openrouter-import",
+    "paper:accept": "node infra/scripts/python-task.mjs paper-accept",
     "retention:run": "node infra/scripts/python-task.mjs retention",
     "check": "node infra/scripts/python-task.mjs check",
     "typecheck": "pnpm --filter @trd/dashboard typecheck",
