@@ -1,9 +1,9 @@
-// Exact synthetic EURUSD/USD executor. Deliberately contains no broker submission.
+// Durable executor around the MT5 request adapter and a synthetic terminal port.
 #ifndef TRD_LAB_MQH
 #define TRD_LAB_MQH
 #include "TrdCore.mqh"
 
-struct TrdCommandState { string id,hash,payload,state; };
+struct TrdCommandState { string id,hash,payload,state,broker_request,broker_reply;bool checked; };
 struct TrdLedgerRow { string id,hash,payload,outcome; };
 struct TrdOutboxRow { string id,payload;bool acknowledged; };
 struct TrdLabPosition { string identifier,opening,side;long volume,entry,sl,tp,revision;bool closed; };
@@ -42,6 +42,9 @@ long TrdExpiry(const string s)
    long result=(long)StringToTime(text);
    return TimeToString((datetime)result,TIME_DATE|TIME_SECONDS)==text?result:0;
 }
+#include "TrdBroker.mqh"
+long trd_broker_checks=0,trd_broker_replies=0;
+string trd_broker_disposition="",trd_broker_request="";
 bool TrdStop(const string reason) { trd_fault=reason;trd_last_status="FAULT";return false; }
 int TrdCommandIndex(const string id)
 {
@@ -84,6 +87,40 @@ bool TrdApplyJournal(const string raw)
       long second;if(!TrdUnsigned(doc.Get("second"),second)||second<=trd_snapshot_second) return false;
       trd_snapshot_second=second;return true;
    }
+   if(type=="BROKER_GATE")
+   {
+      int index=TrdCommandIndex(doc.Get("id"));string reason=doc.Get("reason");
+      if(!doc.Fields("|type|id|hash|reason|")||index<0||trd_commands[index].state!="RECEIVED"||
+         trd_commands[index].hash!=doc.Get("hash")||
+         (reason!="BROKER_CONTEXT_UNSUPPORTED"&&reason!="BROKER_REQUEST_INVALID"&&reason!="BROKER_POSITION_CHANGED"&&reason!="BROKER_PREFLIGHT_CHANGED")) return false;
+      trd_broker_disposition=reason;return true;
+   }
+   if(type=="BROKER_CHECK"||type=="BROKER_REPLY")
+   {
+      if(!doc.Fields("|type|id|hash|request|api_ok|retcode|retcode_external|request_id|order|deal|volume|price|")) return false;
+      int index=TrdCommandIndex(doc.Get("id"));long number;
+      if(index<0||trd_commands[index].hash!=doc.Get("hash")||
+         (doc.Get("api_ok")!="true"&&doc.Get("api_ok")!="false")) return false;
+      string fields[5]={"retcode","request_id","order","deal","volume"};
+      for(int i=0;i<5;i++) if(!TrdUnsigned(doc.Get(fields[i]),number)) return false;
+      if(!TrdUnsigned(doc.Get("price"),number)||!TrdBrokerExternalCode(doc.Get("retcode_external"))) return false;
+      string request=TrdHexAscii(doc.Get("request"));TrdJson parsed;
+      if(!parsed.Parse(request)) return false;
+      if(type=="BROKER_CHECK")
+      {
+         if(trd_commands[index].state!="RECEIVED"||trd_commands[index].checked) return false;
+         trd_commands[index].checked=true;trd_commands[index].broker_request=request;trd_broker_checks++;
+      }
+      else
+      {
+         if(trd_commands[index].state!="SEND_INTENT"||!trd_commands[index].checked||
+            trd_commands[index].broker_reply!=""||trd_commands[index].broker_request!=request) return false;
+         trd_commands[index].broker_reply=raw;trd_broker_replies++;
+         long code;if(!TrdUnsigned(doc.Get("retcode"),code)||code>4294967295) return false;
+         trd_broker_disposition=TrdBrokerDisposition(doc.Get("api_ok")=="true",(uint)code);
+      }
+      trd_broker_request=request;return true;
+   }
    if(type=="COMMAND")
    {
       string id=doc.Get("id"),hash=doc.Get("hash"),payload=TrdHexAscii(doc.Get("payload")),state=doc.Get("state");
@@ -93,6 +130,7 @@ bool TrdApplyJournal(const string raw)
       {
          if(state!="RECEIVED"||trd_command_count>=1000) return false;
          index=trd_command_count++;trd_commands[index].id=id;trd_commands[index].hash=hash;trd_commands[index].payload=payload;
+         trd_commands[index].checked=false;
       }
       else if(trd_commands[index].hash!=hash || !(
          (trd_commands[index].state=="RECEIVED"&&(state=="SEND_INTENT"||state=="REJECTED")) ||
@@ -245,8 +283,14 @@ bool TrdPreflight(const string payload,long &price)
       !TrdDecimal(c.Get("previous_take_profit"),previous_tp)||previous_tp!=trd_positions[p].tp) return false;
    return action=="CLOSE"?(sl==previous_sl&&tp==previous_tp):(side=="BUY"?sl>=previous_sl:sl<=previous_sl);
 }
+#include "TrdBrokerSimulation.mqh"
 bool TrdRecover()
 {
+   // A crash before SEND_INTENT proves this executor did not submit. Reject the
+   // abandoned preflight; a later proposal must pass the gateway again.
+   for(int i=0;i<trd_command_count;i++) if(trd_commands[i].state=="RECEIVED")
+      if(!TrdEvent(TrdObservation(trd_commands[i].id,trd_commands[i].hash,"REJECTED"))||
+         !TrdCommandRecord(trd_commands[i].id,trd_commands[i].hash,trd_commands[i].payload,"REJECTED")) return false;
    for(int i=0;i<trd_command_count;i++) if(trd_commands[i].state=="SEND_INTENT"||trd_commands[i].state=="UNKNOWN")
    {
       int result=TrdResultIndex(trd_commands[i].id);
@@ -272,27 +316,31 @@ bool TrdAccept(const string payload,const string hash)
    if(!TrdCommandRecord(id,hash,payload,"RECEIVED")||!TrdEvent(TrdObservation(id,hash,"RECEIVED"))) return false;
    long price;
    if(!TrdPreflight(payload,price)) return TrdEvent(TrdObservation(id,hash,"REJECTED"))&&TrdCommandRecord(id,hash,payload,"REJECTED");
+   TrdBrokerContext context=TrdSimulationContext(payload);TrdBrokerPlan plan;string reason;
+   if(!TrdBuildBrokerRequest(payload,context,plan,reason))
+      return TrdPersist("{\"type\":\"BROKER_GATE\",\"id\":"+TrdQuote(id)+",\"hash\":"+TrdQuote(hash)+",\"reason\":"+TrdQuote(reason)+"}")&&
+         TrdEvent(TrdObservation(id,hash,"REJECTED"))&&TrdCommandRecord(id,hash,payload,"REJECTED");
+   MqlTradeCheckResult check={};bool checked=TrdSimulationCheck(plan,check);
+   if(!TrdBrokerRecord("BROKER_CHECK",hash,plan,checked,check.retcode,0,0,0,0,0,0)) return false;
+   if(!checked||check.retcode!=0)
+      return TrdEvent(TrdObservation(id,hash,"REJECTED"))&&TrdCommandRecord(id,hash,payload,"REJECTED");
+   if(LocalCrashPoint=="after_check") return TrdStop("LAB_CRASH_AFTER_CHECK");
+   // Recheck command expiry, ownership and the exact request after preflight.
+   TrdBrokerPlan fresh;context=TrdSimulationContext(payload);
+   if(!TrdPreflight(payload,price)||!TrdBuildBrokerRequest(payload,context,fresh,reason)||
+      TrdBrokerRequestJson(fresh)!=TrdBrokerRequestJson(plan))
+      return TrdPersist("{\"type\":\"BROKER_GATE\",\"id\":"+TrdQuote(id)+",\"hash\":"+TrdQuote(hash)+",\"reason\":\"BROKER_PREFLIGHT_CHANGED\"}")&&
+         TrdEvent(TrdObservation(id,hash,"REJECTED"))&&TrdCommandRecord(id,hash,payload,"REJECTED");
    if(!TrdCommandRecord(id,hash,payload,"SEND_INTENT")||!TrdEvent(TrdObservation(id,hash,"SEND_INTENT"))) return false;
    // A fault injected after this durable intent never authorizes a second submission.
    if(LocalCrashPoint=="after_intent") return TrdStop("LAB_CRASH_AFTER_INTENT");
    if(TrdExpiry(c.Get("expires_at"))<=(long)TimeGMT()) return TrdRecover();
-   long ticket=trd_ledger_count+1;string action=c.Get("action"),kind,extra;
-   if(action=="")
-   {
-      kind="FILL";extra=",\"broker_ticket\":"+TrdQuote(IntegerToString(ticket))+",\"broker_deal_id\":"+TrdQuote(IntegerToString(ticket))+
-         ",\"position_identifier\":"+TrdQuote(IntegerToString(ticket))+",\"volume\":"+TrdQuote(c.Get("volume"))+",\"price\":"+TrdQuote(TrdMoney(price));
-   }
-   else
-   {
-      kind=action=="CLOSE"?"POSITION_CLOSED":"STOPS_CHANGED";
-      extra=",\"operation_id\":"+TrdQuote(IntegerToString(ticket))+",\"position_identifier\":"+TrdQuote(c.Get("position_identifier"));
-      extra+=action=="CLOSE"?",\"broker_deal_id\":"+TrdQuote(IntegerToString(10000000000000000+ticket))+",\"volume\":"+TrdQuote(c.Get("volume"))+",\"price\":"+TrdQuote(TrdMoney(price)):
-         ",\"stop_loss\":"+TrdQuote(c.Get("stop_loss"))+",\"take_profit\":"+TrdQuote(c.Get("take_profit"));
-   }
-   string outcome=TrdObservation(id,hash,kind,extra);
-   string row="{\"type\":\"RESULT\",\"hash\":"+TrdQuote(hash)+",\"payload\":"+TrdQuote(TrdAsciiHex(payload))+",\"outcome\":"+TrdQuote(TrdAsciiHex(outcome))+"}";
-   if(!TrdRecord(trd_broker_file,trd_broker_chain,row)||!TrdApplyBroker(row)) return TrdStop("BROKER_LEDGER_FAILED");
+   MqlTradeResult result={};bool sent=TrdSimulationSend(payload,hash,plan,result);
    if(LocalCrashPoint=="after_result") return TrdStop("LAB_CRASH_AFTER_RESULT");
+   if(!TrdBrokerRecord("BROKER_REPLY",hash,plan,sent,result.retcode,result.retcode_external,result.request_id,
+      (long)result.order,(long)result.deal,(long)(result.volume*100000+0.5),(long)(result.price*100000+0.5))) return false;
+   if(sent&&(result.retcode==TRADE_RETCODE_PLACED||result.retcode==TRADE_RETCODE_DONE))
+      if(!TrdEvent(TrdObservation(id,hash,"ACCEPTED"))) return false;
    return TrdRecover();
 }
 #endif

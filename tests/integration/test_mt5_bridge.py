@@ -6,7 +6,14 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from backend.api.factory import create_bridge_app
-from backend.infrastructure.domain_models import ExecutionCommand, Position, TradingAccount
+from backend.infrastructure.bridge_models import PaperCommandRecord
+from backend.infrastructure.domain_models import (
+    ExecutionCommand,
+    Position,
+    RiskReservation,
+    TradingAccount,
+)
+from backend.infrastructure.position_models import PaperOperation
 from infra.scripts.mt5_lab import MqlLabProcess, lab_config
 from infra.scripts.paper_scenarios import LocalPaperScenario
 
@@ -24,9 +31,9 @@ def native(isolated_database, tmp_path):
     scenario.close()
 
 
-def host(binary, scenario, directory, config, **options):
+def host(binary, platform, directory, config, **options):
     def relay(request):
-        response = scenario.client.post(
+        response = platform.client.post(
             request.url.path, content=request.content, headers=dict(request.headers)
         )
         return httpx.Response(
@@ -112,3 +119,110 @@ def test_native_ea_same_second_restart_waits_without_stale_snapshot(mql_binary, 
             assert c.scalar(select(TradingAccount.status)) == "READY"
     finally:
         second.close()
+
+
+@pytest.mark.parametrize("scenario", ["check_false", "check_rejected", "quote_changed_after_check"])
+def test_broker_adapter_pre_send_rejection_releases_only_unsent_risk(
+    mql_binary, native, tmp_path, scenario
+):
+    executor = host(
+        mql_binary, native, tmp_path / "terminal", configuration(native), scenario=scenario
+    )
+    try:
+        native.emit_signal()
+        assert executor.cycle()["operations"] == 0
+        with native.operator.connect() as c:
+            assert c.scalar(select(ExecutionCommand.state)) == "REJECTED"
+            assert c.scalar(select(RiskReservation.status)) == "RELEASED"
+            assert c.scalar(select(Position.id)) is None
+    finally:
+        executor.close()
+
+
+@pytest.mark.parametrize(
+    "scenario",
+    [
+        "placed",
+        "done_without_evidence",
+        "partial",
+        "timeout",
+        "connection",
+        "send_false",
+        "send_rejected",
+        "external_error",
+    ],
+)
+def test_broker_adapter_unknown_reply_retains_gateway_reservation_across_restart(
+    mql_binary, native, tmp_path, scenario
+):
+    config = configuration(native)
+    directory = tmp_path / "terminal"
+    executor = host(mql_binary, native, directory, config, scenario=scenario)
+    try:
+        native.emit_signal()
+        result = executor.cycle()
+        assert result["unknown"] == 1 and result["operations"] == 0
+        with native.operator.connect() as c:
+            assert c.scalar(select(ExecutionCommand.state)) == "RECONCILING"
+            assert c.scalar(select(RiskReservation.status)) == "OUTCOME_UNKNOWN"
+            assert c.scalar(select(PaperCommandRecord.remaining_risk)) > 0
+            assert c.scalar(select(TradingAccount.status)) == "RECONCILING"
+            assert c.scalar(select(Position.id)) is None
+    finally:
+        executor.close()
+    resumed = host(mql_binary, native, directory, config)
+    try:
+        assert resumed.cycle()["status"] == "RECONCILING"
+        assert resumed.cycle()["broker_replies"] == 1
+        with native.operator.connect() as c:
+            assert c.scalar(select(RiskReservation.status)) == "OUTCOME_UNKNOWN"
+    finally:
+        resumed.close()
+
+
+@pytest.mark.parametrize("action", ["MODIFY_STOPS", "CLOSE"])
+def test_broker_adapter_position_timeout_keeps_original_position(
+    mql_binary, native, tmp_path, action
+):
+    config = configuration(native)
+    directory = tmp_path / "terminal"
+    initial = host(mql_binary, native, directory, config)
+    try:
+        native.emit_signal()
+        assert initial.cycle()["operations"] == 1
+    finally:
+        initial.close()
+    with native.operator.connect() as c:
+        position = c.scalar(select(Position.id))
+        volume = c.scalar(select(Position.volume))
+    extra = {"stop_loss": "1.09700", "take_profit": "1.11000"} if action == "MODIFY_STOPS" else {}
+    native.operator_request(action, position, **extra)
+    uncertain = host(mql_binary, native, directory, config, scenario="timeout")
+    try:
+        result = uncertain.cycle()
+        assert result["operations"] == 1 and result["unknown"] == 1
+        with native.operator.connect() as c:
+            assert c.scalar(select(Position.volume)) == volume
+            assert c.scalar(select(Position.status)) == "OUTCOME_UNKNOWN"
+            assert c.scalar(select(PaperOperation.state)) == "UNKNOWN"
+    finally:
+        uncertain.close()
+
+
+@pytest.mark.parametrize("scenario", ["timeout_with_evidence", "placed_with_evidence"])
+def test_broker_adapter_durable_history_confirms_fill_despite_reply(
+    mql_binary, native, tmp_path, scenario
+):
+    executor = host(
+        mql_binary, native, tmp_path / "terminal", configuration(native), scenario=scenario
+    )
+    try:
+        native.emit_signal()
+        assert executor.cycle()["operations"] == 1
+        assert executor.cycle()["operations"] == 1
+        with native.operator.connect() as c:
+            assert c.scalar(select(ExecutionCommand.state)) == "COMPLETED"
+            assert c.scalar(select(RiskReservation.status)) == "CONSUMED"
+            assert c.scalar(select(Position.volume)) > 0
+    finally:
+        executor.close()

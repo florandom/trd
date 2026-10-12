@@ -128,7 +128,16 @@ class MqlLabProcess:
     """Drive OnInit/OnTimer and relay only the signed loopback transport."""
 
     def __init__(
-        self, binary, directory, config, *, crash="", active=True, tester=False, transport=None
+        self,
+        binary,
+        directory,
+        config,
+        *,
+        crash="",
+        scenario="",
+        active=True,
+        tester=False,
+        transport=None,
     ):
         self.directory = Path(directory)
         self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -149,6 +158,7 @@ class MqlLabProcess:
                 crash,
                 "1" if active else "0",
                 "1" if tester else "0",
+                scenario,
             ],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,

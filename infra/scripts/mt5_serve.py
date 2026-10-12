@@ -35,7 +35,7 @@ def main(output_dir: Path | None):
             print(f"Origine locale da autorizzare in MT5: {config['origin']}")
             print("Copia TRD in MQL5/Experts e config.json in MQL5/Files/TRD-LAB.")
             print("Compila e collega TrdLocalBridge; ActivateLocalSimulation=true.")
-            print("Lascia LocalCrashPoint vuoto.")
+            print("Lascia LocalCrashPoint e LocalBrokerScenario vuoti.")
             while True:
                 choice = input("1 apertura; 2 stop; 3 chiusura; 4 stato; 0 termina: ").strip()
                 if choice == "0":

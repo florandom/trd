@@ -18,7 +18,16 @@
 using string=std::string;using uchar=unsigned char;using uint=uint32_t;using datetime=long;
 constexpr int INVALID_HANDLE=-1,FILE_READ=1,FILE_WRITE=2,FILE_TXT=4,FILE_ANSI=8,FILE_COMMON=16,CP_UTF8=65001;
 constexpr int TIME_DATE=1,TIME_SECONDS=2,INIT_SUCCEEDED=0,INIT_FAILED=1,MQL_TESTER=1;
-struct MqlTradeTransaction {};struct MqlTradeRequest {};struct MqlTradeResult {};
+using ulong=unsigned long;
+constexpr int TRADE_ACTION_DEAL=1,TRADE_ACTION_SLTP=6,ORDER_TYPE_BUY=0,ORDER_TYPE_SELL=1,ORDER_FILLING_FOK=0,ORDER_TIME_GTC=0;
+constexpr uint TRADE_RETCODE_PLACED=10008,TRADE_RETCODE_DONE=10009,TRADE_RETCODE_DONE_PARTIAL=10010,TRADE_RETCODE_REJECT=10006,TRADE_RETCODE_TIMEOUT=10012,TRADE_RETCODE_NO_MONEY=10019,TRADE_RETCODE_CONNECTION=10031,TRADE_RETCODE_ERROR=10011;
+struct MqlTradeTransaction {};
+struct MqlTradeRequest {
+ int action=0,type=0,type_filling=0,type_time=0;ulong magic=0,order=0,position=0,position_by=0,deviation=0;
+ string symbol,comment;double volume=0,price=0,stoplimit=0,sl=0,tp=0;datetime expiration=0;
+};
+struct MqlTradeResult { uint retcode=0,request_id=0;int retcode_external=0;ulong deal=0,order=0;double volume=0,price=0; };
+struct MqlTradeCheckResult { uint retcode=0; };
 static int host_error=0;static string host_root;static bool host_tester=false;
 int StringLen(const string &s) { return static_cast<int>(s.size()); }
 string StringSubstr(const string &s,int start,int length=-1) {

@@ -103,6 +103,11 @@ def run_acceptance():
             scenario.operator_request("CLOSE", positions[1])
             result = resumed.cycle()
             assert result["operations"] == 5 and result["positions"] == 0
+            assert result["broker_checks"] == 5
+            assert result["broker_request"]["action"] == "DEAL"
+            assert result["broker_request"]["side"] == "SELL"
+            assert result["broker_request"]["position_ticket"] != "0"
+            assert result["broker_request"]["stop_loss"] == "0.00000"
             scenario.operator_request("RESUME")
             assert resumed.cycle()["status"] == "RESUMED"
             with scenario.operator.connect() as connection:
@@ -111,6 +116,8 @@ def run_acceptance():
             return {
                 "mode": "paper",
                 "executor": "MQL5 source with portable platform shim",
+                "broker_adapter": "MqlTradeRequest with synthetic terminal port",
+                "broker_request_checks": result["broker_checks"],
                 "external_connections": False,
                 "real_orders": 0,
                 "simulated_openings": 2,

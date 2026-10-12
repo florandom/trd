@@ -1,9 +1,10 @@
 #property strict
-#property version "0.10"
+#property version "0.11"
 #property description "TRD laboratorio locale: conto sintetico, nessun ordine broker"
 input bool ActivateLocalSimulation=false;
 input string LocalConfig="TRD-LAB\\config.json";
 input string LocalCrashPoint=""; // Only synthetic failure testing; never a trading mode.
+input string LocalBrokerScenario=""; // Synthetic terminal faults only. Empty = full execution.
 
 #include "../Include/TrdLab.mqh"
 
@@ -178,6 +179,10 @@ void OnTimer()
    if(!ActivateLocalSimulation||trd_fault!="") return;
    if(TrdToday()!=trd_lab_day) { TrdStop("LAB_SESSION_DAY_EXPIRED");return; }
    if(!TrdRecover()||!TrdFlushEvents()) return;
+   // Partial/accepted/uncertain broker outcomes cannot publish a complete portfolio
+   // or authorize another command. Outbox transport remains available.
+   for(int i=0;i<trd_command_count;i++) if(trd_commands[i].state=="UNKNOWN")
+   { trd_last_status="RECONCILING";return; }
    // TimeGMT has second resolution. Do not fabricate a newer observation when a
    // restart or fast handler runs within the previously persisted snapshot second.
    long observed=(long)TimeGMT();
