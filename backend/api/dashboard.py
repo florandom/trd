@@ -47,7 +47,7 @@ class OperationalRows(BaseModel):
 
 
 class Change(Input):
-    kind: Literal["settings", "risk", "agent", "source"]
+    kind: Literal["settings", "risk", "agent", "source", "paper_position", "paper_resume"]
     target: str = Field(min_length=1, max_length=96)
     expected_version: int = Field(strict=True, ge=0)
     value: JsonValue

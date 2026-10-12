@@ -136,4 +136,5 @@ class DashboardConfirmation(Base):
 # isort: off
 from backend.infrastructure import domain_models as domain_models  # noqa: E402
 from backend.infrastructure import bridge_models as bridge_models  # noqa: E402
+from backend.infrastructure import position_models as position_models  # noqa: E402
 # isort: on

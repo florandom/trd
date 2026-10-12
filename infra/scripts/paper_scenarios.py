@@ -57,12 +57,13 @@ class LocalPaperScenario:
             raise
 
     def _initialize(self, urls, directory, environment):
+        self.operator_password = secrets.token_urlsafe(32)
         bootstrap(
             BootstrapSettings(
                 migration_database_url=urls["trd_migrator"],
                 environment_id=environment,
                 admin_bootstrap_email="paper-operator@example.test",
-                admin_bootstrap_password=secrets.token_urlsafe(32),
+                admin_bootstrap_password=self.operator_password,
             )
         )
         self.source_id, self.account_id = uuid4(), uuid4()
@@ -244,5 +245,78 @@ class LocalPaperScenario:
         )
 
     def close(self):
+        if hasattr(self, "admin_client"):
+            self.admin_client.close()
         for engine in self.engines.values():
             engine.dispose()
+
+    def operator_request(self, action, position_id=None, **levels):
+        """Use real session/CSRF/confirmation routes; never direct execution writes."""
+        from fastapi.testclient import TestClient
+
+        from backend.api.factory import create_app
+        from backend.domain.config import ApiSettings
+        from backend.infrastructure.position_models import PaperPositionState
+
+        if not hasattr(self, "admin_client"):
+            self.admin_client = TestClient(
+                create_app(
+                    ApiSettings(
+                        app_env="test",
+                        environment_id=self.env,
+                        database_url=self.urls["trd_api"],
+                        auth_cookie_secure=False,
+                    ),
+                    lambda _: True,
+                    engine=self.engines["trd_api"],
+                )
+            )
+            csrf = self.admin_client.get("/auth/csrf").json()["csrf_token"]
+            response = self.admin_client.post(
+                "/auth/login",
+                json={"email": "paper-operator@example.test", "password": self.operator_password},
+                headers={"Origin": "http://localhost:3000", "X-CSRF-Token": csrf},
+            )
+            if response.status_code != 200:
+                raise RuntimeError("local operator login failed")
+        with self.operator.connect() as c:
+            version = (
+                c.scalar(
+                    select(TradingAccount.safety_epoch).where(TradingAccount.id == self.account_id)
+                )
+                if action == "RESUME"
+                else c.scalar(
+                    select(PaperPositionState.revision).where(
+                        PaperPositionState.position_id == position_id
+                    )
+                )
+            )
+        value = {
+            "action": action,
+            "stop_loss": levels.get("stop_loss"),
+            "take_profit": levels.get("take_profit"),
+        }
+        change = {
+            "kind": "paper_resume" if action == "RESUME" else "paper_position",
+            "target": str(self.account_id if action == "RESUME" else position_id),
+            "expected_version": version,
+            "value": value,
+        }
+        headers = {
+            "Origin": "http://localhost:3000",
+            "X-CSRF-Token": self.admin_client.get("/auth/me").json()["csrf_token"],
+        }
+        response = self.admin_client.post("/config/confirm", json=change, headers=headers)
+        if response.status_code != 200:
+            raise RuntimeError("local operator confirmation failed")
+        response = self.admin_client.post(
+            "/config/apply",
+            json={
+                "change": response.json()["change"],
+                "confirmation_token": response.json()["confirmation_token"],
+            },
+            headers=headers,
+        )
+        if response.status_code != 200:
+            raise RuntimeError("local operator request failed")
+        return response

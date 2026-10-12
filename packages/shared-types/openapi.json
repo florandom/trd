@@ -59,7 +59,9 @@
               "settings",
               "risk",
               "agent",
-              "source"
+              "source",
+              "paper_position",
+              "paper_resume"
             ],
             "title": "Kind",
             "type": "string"

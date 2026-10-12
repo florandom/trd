@@ -316,7 +316,17 @@ class PaperEvent(Contract):
     command_id: UUID
     command_hash: Checksum
     kind: Literal[
-        "RECEIVED", "SEND_INTENT", "ACCEPTED", "FILL", "RECONCILED_FILL", "UNKNOWN", "REJECTED"
+        "RECEIVED",
+        "SEND_INTENT",
+        "ACCEPTED",
+        "FILL",
+        "RECONCILED_FILL",
+        "UNKNOWN",
+        "REJECTED",
+        "POSITION_CLOSED",
+        "STOPS_CHANGED",
+        "RECONCILED_CLOSE",
+        "RECONCILED_STOPS",
     ]
     observed_at: datetime
     broker_ticket: str | None = Field(default=None, pattern=r"^[0-9]{1,32}$")
@@ -324,9 +334,33 @@ class PaperEvent(Contract):
     position_identifier: str | None = Field(default=None, pattern=r"^[0-9]{1,32}$")
     volume: PositiveDecimal | None = None
     price: PositiveDecimal | None = None
+    stop_loss: PositiveDecimal | None = None
+    take_profit: PositiveDecimal | None = None
+    operation_id: str | None = Field(default=None, pattern=r"^[0-9]{1,32}$")
 
     @model_validator(mode="after")
     def economic_evidence(self):
+        if self.kind in {
+            "POSITION_CLOSED",
+            "RECONCILED_CLOSE",
+            "STOPS_CHANGED",
+            "RECONCILED_STOPS",
+        }:
+            if self.operation_id is None or self.position_identifier is None:
+                raise ValueError("position operation requires economic identity")
+            close = self.kind in {"POSITION_CLOSED", "RECONCILED_CLOSE"}
+            if close and (self.volume is None or self.price is None or self.broker_deal_id is None):
+                raise ValueError("close requires volume, price and deal")
+            if not close and (self.stop_loss is None or self.take_profit is None):
+                raise ValueError("stop update requires protective levels")
+            if (close and (self.stop_loss is not None or self.take_profit is not None)) or (
+                not close
+                and any(v is not None for v in (self.volume, self.price, self.broker_deal_id))
+            ):
+                raise ValueError("contradictory position evidence")
+            return self
+        if any(v is not None for v in (self.stop_loss, self.take_profit, self.operation_id)):
+            raise ValueError("unexpected position evidence")
         if self.kind in {"FILL", "RECONCILED_FILL"} and any(
             v is None
             for v in (
@@ -352,3 +386,55 @@ class PaperEvents(Contract):
 
 class Poll(Contract):
     pass
+
+
+class PaperOperatorAction(Contract):
+    action: Literal["CLOSE", "MODIFY_STOPS", "RESUME"]
+    stop_loss: PositiveDecimal | None = None
+    take_profit: PositiveDecimal | None = None
+
+    @model_validator(mode="after")
+    def protective_levels(self):
+        if self.action == "MODIFY_STOPS":
+            if self.stop_loss is None or self.take_profit is None:
+                raise ValueError("protective levels required")
+        elif self.stop_loss is not None or self.take_profit is not None:
+            raise ValueError("unexpected protective levels")
+        return self
+
+
+class PaperPositionCommand(Contract):
+    action: Literal["CLOSE", "MODIFY_STOPS"]
+    command_id: UUID
+    request_id: UUID
+    trace_id: UUID
+    account_id: UUID
+    account: AccountIdentity
+    bridge_id: str
+    instance_id: str
+    generation: int = Field(strict=True, ge=1)
+    profile_hash: Checksum
+    safety_epoch: int = Field(strict=True, ge=1)
+    position_id: UUID
+    position_revision: int = Field(strict=True, ge=1)
+    opening_command_id: UUID
+    position_identifier: str = Field(pattern=r"^[0-9]{1,32}$")
+    symbol: str
+    side: Literal["BUY", "SELL"]
+    volume: PositiveDecimal
+    entry_price: PositiveDecimal
+    entry_value: PositiveDecimal
+    previous_stop_loss: PositiveDecimal
+    previous_take_profit: PositiveDecimal
+    stop_loss: PositiveDecimal
+    take_profit: PositiveDecimal
+    price_band_low: PositiveDecimal
+    price_band_high: PositiveDecimal
+    max_spread_points: NonnegativeDecimal
+    max_deviation_points: NonnegativeDecimal
+    expires_at: datetime
+
+
+def parse_paper_command(payload: bytes):
+    value = strict_json(payload)
+    return (PaperPositionCommand if "action" in value else PaperCommand).model_validate(value)

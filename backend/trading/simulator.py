@@ -21,11 +21,14 @@ from backend.domain.bridge import (
     PaperEvent,
     PaperEvents,
     PaperPosition,
+    PaperPositionCommand,
     PaperProfile,
     ProtocolError,
     json_bytes,
+    parse_paper_command,
     strict_json,
 )
+from backend.domain.position_management import position_preflight, realized_pnl
 from backend.domain.risk import ceil
 
 
@@ -55,9 +58,14 @@ class PaperBroker:
         CREATE TABLE IF NOT EXISTS deals(ticket INTEGER PRIMARY KEY AUTOINCREMENT,
             order_ticket INTEGER NOT NULL REFERENCES broker_orders(ticket),
             volume TEXT NOT NULL, price TEXT NOT NULL, observed_at TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS position_operations(ticket INTEGER PRIMARY KEY AUTOINCREMENT,
+            command_id TEXT NOT NULL, command_hash TEXT NOT NULL, payload BLOB NOT NULL,
+            position_identifier TEXT NOT NULL, outcome BLOB NOT NULL);
         """)
 
     def submit(self, command, payload_hash, *, volume=None, price=None):
+        if isinstance(command, PaperPositionCommand):
+            return self.submit_position(command, payload_hash, price)
         self.db.execute("BEGIN IMMEDIATE")
         try:
             ticket = self.db.execute(
@@ -79,6 +87,62 @@ class PaperBroker:
             raise
         return ticket
 
+    def submit_position(self, command, payload_hash, price):
+        # Deliberately separate from executor journal; restart must reconcile this ledger.
+        self.db.execute("BEGIN IMMEDIATE")
+        try:
+            positions = {p.broker_identifier: p for p in self.positions()}
+            current = positions.get(command.position_identifier)
+            if (
+                current is None
+                or current.volume != command.volume
+                or current.command_id != command.opening_command_id
+            ):
+                raise ProtocolError("SYNTHETIC_POSITION_CHANGED")
+            result = {
+                "kind": "POSITION_CLOSED" if command.action == "CLOSE" else "STOPS_CHANGED",
+                "position_identifier": command.position_identifier,
+                "observed_at": datetime.now(UTC).isoformat(),
+            }
+            if command.action == "CLOSE":
+                result.update(volume=str(command.volume), price=str(price))
+            else:
+                result.update(
+                    stop_loss=str(command.stop_loss), take_profit=str(command.take_profit)
+                )
+            ticket = self.db.execute(
+                "INSERT INTO position_operations(command_id,command_hash,payload,"
+                "position_identifier,outcome) VALUES(?,?,?,?,?)",
+                (
+                    str(command.command_id),
+                    payload_hash,
+                    json_bytes(command),
+                    command.position_identifier,
+                    json_bytes(result),
+                ),
+            ).lastrowid
+            self.db.execute("COMMIT")
+        except Exception:
+            self.db.execute("ROLLBACK")
+            raise
+        return ticket
+
+    def position_results(self, command_id):
+        return self.db.execute(
+            "SELECT * FROM position_operations WHERE command_id=? ORDER BY ticket",
+            (str(command_id),),
+        ).fetchall()
+
+    def realized_pnl(self, profile):
+        total = Decimal(0)
+        for row in self.db.execute("SELECT * FROM position_operations ORDER BY ticket").fetchall():
+            command = PaperPositionCommand.model_validate(strict_json(row["payload"]))
+            if command.action == "CLOSE":
+                result = strict_json(row["outcome"])
+                instrument = next(i for i in profile.instruments if i.symbol == command.symbol)
+                total += realized_pnl(command, Decimal(result["price"]), instrument)
+        return total
+
     def deals(self, command_id):
         return self.db.execute(
             "SELECT d.*,b.command_hash,b.command_id FROM deals d JOIN broker_orders b "
@@ -90,6 +154,20 @@ class PaperBroker:
         positions = []
         for order in self.db.execute("SELECT * FROM broker_orders ORDER BY ticket").fetchall():
             command = PaperCommand.model_validate(strict_json(order["payload"]))
+            operations = self.db.execute(
+                "SELECT * FROM position_operations WHERE position_identifier=? ORDER BY ticket",
+                (str(order["ticket"]),),
+            ).fetchall()
+            protection = None
+            closed = False
+            for operation in operations:
+                outcome = strict_json(operation["outcome"])
+                if outcome["kind"] == "POSITION_CLOSED":
+                    closed = True
+                else:
+                    protection = outcome
+            if closed:
+                continue
             deals = self.db.execute(
                 "SELECT * FROM deals WHERE order_ticket=?", (order["ticket"],)
             ).fetchall()
@@ -108,8 +186,8 @@ class PaperBroker:
                     side=command.side,
                     volume=volume,
                     entry_price=average,
-                    stop_loss=command.stop_loss,
-                    take_profit=command.take_profit,
+                    stop_loss=protection["stop_loss"] if protection else command.stop_loss,
+                    take_profit=protection["take_profit"] if protection else command.take_profit,
                 )
             )
         return tuple(positions)
@@ -281,6 +359,8 @@ class PaperSimulator:
         ).fetchall()
         if not rows:
             return
+        while sum(len(r["payload"]) + 1 for r in rows) + 32 > MAX_BODY:
+            rows.pop()
         batch = PaperEvents(
             events=tuple(PaperEvent.model_validate(strict_json(r["payload"])) for r in rows)
         )
@@ -295,6 +375,16 @@ class PaperSimulator:
         self.db.execute("COMMIT")
 
     def preflight(self, command, snapshot, safety_epoch):
+        if isinstance(command, PaperPositionCommand):
+            with localcontext() as context:
+                context.prec = 80
+                fills = self.broker.deals(command.opening_command_id)
+                entry_value = sum(
+                    (Decimal(d["volume"]) * Decimal(d["price"]) for d in fills), Decimal(0)
+                )
+                if entry_value != command.entry_value:
+                    raise ProtocolError("POSITION_ENTRY_EVIDENCE_MISMATCH")
+            return position_preflight(command, snapshot, self.profile, safety_epoch)
         p = self.profile
         if (
             command.account != p.account
@@ -387,7 +477,7 @@ class PaperSimulator:
     def accept(self, payload: bytes, payload_hash: str, snapshot, safety_epoch, *, crash=None):
         if sha256(payload).hexdigest() != payload_hash:
             raise ProtocolError("COMMAND_HASH_MISMATCH")
-        command = PaperCommand.model_validate(strict_json(payload))
+        command = parse_paper_command(payload)
         existing = self.db.execute(
             "SELECT * FROM commands WHERE command_id=?", (str(command.command_id),)
         ).fetchone()
@@ -441,7 +531,10 @@ class PaperSimulator:
         row = self.db.execute(
             "SELECT * FROM commands WHERE command_id=?", (str(command_id),)
         ).fetchone()
-        command = PaperCommand.model_validate(strict_json(row["payload"]))
+        command = parse_paper_command(row["payload"])
+        if isinstance(command, PaperPositionCommand):
+            self.reconcile_position(row, command, recovered)
+            return
         orders = self.broker.db.execute(
             "SELECT * FROM broker_orders WHERE command_id=?", (str(command_id),)
         ).fetchall()
@@ -486,6 +579,48 @@ class PaperSimulator:
             self.db.execute("ROLLBACK")
             raise
 
+    def reconcile_position(self, row, command, recovered):
+        results = self.broker.position_results(command.command_id)
+        self.db.execute("BEGIN IMMEDIATE")
+        try:
+            if len(results) == 1 and results[0]["command_hash"] == row["payload_hash"]:
+                result = results[0]
+                value = strict_json(result["outcome"])
+                value.pop("observed_at")
+                kind = value.pop("kind")
+                if recovered:
+                    kind = "RECONCILED_CLOSE" if kind == "POSITION_CLOSED" else "RECONCILED_STOPS"
+                identity = "operation:" + str(result["ticket"])
+                if not self.db.execute(
+                    "SELECT 1 FROM journal_deals WHERE deal_id=?", (identity,)
+                ).fetchone():
+                    if command.action == "CLOSE":
+                        value["broker_deal_id"] = str(10**16 + result["ticket"])
+                    self.enqueue(
+                        command,
+                        row["payload_hash"],
+                        kind,
+                        operation_id=str(result["ticket"]),
+                        **value,
+                    )
+                    self.db.execute(
+                        "INSERT INTO journal_deals VALUES(?,?)", (identity, str(command.command_id))
+                    )
+                self.db.execute(
+                    "UPDATE commands SET state='FILLED' WHERE command_id=?",
+                    (str(command.command_id),),
+                )
+            elif row["state"] != "UNKNOWN":
+                self.enqueue(command, row["payload_hash"], "UNKNOWN")
+                self.db.execute(
+                    "UPDATE commands SET state='UNKNOWN' WHERE command_id=?",
+                    (str(command.command_id),),
+                )
+            self.db.execute("COMMIT")
+        except Exception:
+            self.db.execute("ROLLBACK")
+            raise
+
     def recover(self):
         for row in self.db.execute(
             "SELECT command_id FROM commands WHERE state IN ('SEND_INTENT','UNKNOWN')"
@@ -495,7 +630,16 @@ class PaperSimulator:
     def cycle(self, snapshot, *, crash=None):
         self.recover()
         self.flush_events()
-        snapshot = snapshot.model_copy(update={"positions": self.broker.positions()})
+        with localcontext() as context:
+            context.prec = 80
+            pnl = self.broker.realized_pnl(self.profile)
+            snapshot = snapshot.model_copy(
+                update={
+                    "positions": self.broker.positions(),
+                    "equity": snapshot.equity + pnl,
+                    "free_margin": snapshot.free_margin + pnl,
+                }
+            )
         self.request("/bridge/v1/snapshot", snapshot)
         reply = self.request("/bridge/v1/poll", {})
         if reply.get("command"):

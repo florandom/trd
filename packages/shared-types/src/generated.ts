@@ -219,7 +219,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "settings" | "risk" | "agent" | "source";
+            kind: "settings" | "risk" | "agent" | "source" | "paper_position" | "paper_resume";
             /** Target */
             target: string;
             value: components["schemas"]["JsonValue"];

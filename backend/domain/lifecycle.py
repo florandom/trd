@@ -61,6 +61,7 @@ class Evidence(StrEnum):
     BROKER_CANCEL = "BROKER_CANCEL"
     RECONCILED_FILL = "RECONCILED_FILL"
     RECONCILED_ABSENT = "RECONCILED_ABSENT"
+    BROKER_POSITION_UPDATE = "BROKER_POSITION_UPDATE"
 
 
 SIGNAL_TRANSITIONS = {
@@ -114,6 +115,8 @@ def validate_transition(
     required: set[Evidence] | None = None
     if after in {"EXECUTED", "FILLED", "COMPLETED"}:
         required = {Evidence.BROKER_FILL, Evidence.RECONCILED_FILL}
+        if kind == "command" and after == "COMPLETED":
+            required.add(Evidence.BROKER_POSITION_UPDATE)
     elif kind == "order" and after == "PARTIALLY_FILLED":
         required = {Evidence.BROKER_PARTIAL_FILL}
     elif kind == "order" and after == "ACCEPTED":

@@ -12,10 +12,16 @@ from tempfile import TemporaryDirectory
 import uvicorn
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from backend.api.factory import create_bridge_app
-from backend.infrastructure.domain_models import ExecutionCommand, Order, RiskReservation
+from backend.infrastructure.domain_models import (
+    ExecutionCommand,
+    Order,
+    Position,
+    RiskReservation,
+    TradingAccount,
+)
 from backend.trading.simulator import PaperSimulator, SimulatedCrash
 from infra.scripts.paper_database import disposable_database
 from infra.scripts.paper_scenarios import LocalPaperScenario
@@ -123,6 +129,24 @@ def run_acceptance():
                             assert commands == ["COMPLETED", "COMPLETED"]
                             assert orders == ["FILLED", "FILLED"]
                             assert reservations == ["CONSUMED", "CONSUMED"]
+                            positions = c.scalars(
+                                select(Position.id).order_by(Position.opened_at)
+                            ).all()
+                        scenario.operator_request(
+                            "MODIFY_STOPS", positions[0], stop_loss="1.09700", take_profit="1.11000"
+                        )
+                        assert resumed.cycle(scenario.snapshot()) == "DELIVERED"
+                        scenario.operator_request("CLOSE", positions[0])
+                        assert resumed.cycle(scenario.snapshot()) == "DELIVERED"
+                        with scenario.operator.begin() as c:
+                            c.execute(update(TradingAccount).values(status="PAUSED"))
+                        scenario.operator_request("CLOSE", positions[1])
+                        assert resumed.cycle(scenario.snapshot()) == "DELIVERED"
+                        assert not resumed.broker.positions()
+                        scenario.operator_request("RESUME")
+                        assert resumed.cycle(scenario.snapshot()) == "RESUMED"
+                        with scenario.operator.connect() as c:
+                            assert c.scalars(select(Position.status)).all() == ["CLOSED", "CLOSED"]
                         report = {
                             "mode": "paper",
                             "external_connections": False,
@@ -130,6 +154,11 @@ def run_acceptance():
                             "simulated_orders": 2,
                             "duplicate_orders": 0,
                             "restart_reconciled": True,
+                            "stop_update_confirmed": True,
+                            "full_closes_confirmed": 2,
+                            "close_while_paused": True,
+                            "controlled_resume": True,
+                            "realized_pnl_usd": str(resumed.broker.realized_pnl(scenario.profile)),
                             "database_and_keys": "temporary",
                         }
                     finally:

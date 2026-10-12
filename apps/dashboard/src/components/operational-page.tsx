@@ -21,6 +21,7 @@ import {
 import {formatCheckedAt} from '@/lib/locale';
 import ConfigurationEditor from './configuration-page';
 import {useSession} from './trading-shell';
+import {PaperAction, PaperAccounts} from './paper-position-actions';
 export const PAGES: Record<string, {title: string; description: string}> = {
   settings: {
     title: 'Impostazioni',
@@ -55,7 +56,7 @@ export const PAGES: Record<string, {title: string; description: string}> = {
   positions: {
     title: 'Posizioni',
     description:
-      'Posizioni registrate dal sistema. Nessun conto di trading è attualmente collegato.',
+      'Posizioni e risultati registrati. Nel laboratorio paper puoi richiedere chiusure complete e stop che riducono il rischio. Nessun conto reale è collegato.',
   },
   signals: {
     title: 'Segnali',
@@ -99,6 +100,12 @@ const ACTION: Record<string, string> = {
   PAPER_DAILY_LOSS_LATCHED: 'Simulazione fermata al limite di perdita giornaliera',
   PAPER_COMMAND_RESERVED: 'Rischio prenotato per un ordine simulato',
   PAPER_BROKER_FILL: 'Esecuzione simulata confermata',
+  PAPER_POSITION_CONFIG_REVISED: 'Richiesta di gestione della posizione simulata',
+  PAPER_RESUME_CONFIG_REVISED: 'Richiesta di ripresa della simulazione',
+  PAPER_POSITION_CLOSED: 'Posizione simulata chiusa',
+  PAPER_STOPS_CHANGED: 'Protezioni della posizione simulata aggiornate',
+  PAPER_ACCOUNT_RESUMED: 'Ripresa della simulazione verificata',
+  PAPER_OPERATION_REJECTED: 'Richiesta simulata respinta dai controlli',
   BOOTSTRAP_DOMAIN_DEFAULTS_CREATED: 'Configurazioni iniziali create',
   BOOTSTRAP_ADMIN_CREATED: 'Amministratore iniziale creato',
   BOOTSTRAP_DEFAULTS_CREATED: 'Impostazioni iniziali create',
@@ -325,8 +332,15 @@ export default function OperationalPage({section}: {section: string}) {
       column('symbol', 'Strumento'),
       column('volume', 'Volume (lotti)'),
       column('entry_price', 'Prezzo di ingresso'),
-      column('status', 'Stato', (r) => status(translated(r.status))),
+      column('status', 'Stato', (r) => <VStack gap={1}>
+        {status(translated(r.status))}
+        {Boolean(r.closed_at) && <Text type="supporting">Chiusa il {formatCheckedAt(String(r.closed_at))}</Text>}
+      </VStack>),
       column('broker_identifier', 'Identificativo broker'),
+      column('stop_loss', 'Stop loss'),
+      column('take_profit', 'Take profit'),
+      column('realized_pnl', 'Risultato netto realizzato (USD)'),
+      column('id', 'Gestione', (r) => <PaperAction row={r} onSaved={load} />),
     ];
   if (section === 'signals')
     columns = [
@@ -454,6 +468,7 @@ export default function OperationalPage({section}: {section: string}) {
           )}
         </VStack>
       </Section>
+      {section === 'positions' && <Section variant="transparent" padding={6}><PaperAccounts onSaved={load} /></Section>}
       {error && (
         <Banner
           status="error"

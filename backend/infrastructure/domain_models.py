@@ -528,7 +528,7 @@ class ExecutionCommand(ScopedRecord):
         ),
     )
     account_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
-    reservation_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+    reservation_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), nullable=True)
     trace_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
     payload: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     payload_hash: Mapped[str] = mapped_column(String(64), nullable=False)

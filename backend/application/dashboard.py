@@ -19,6 +19,7 @@ from sqlalchemy import Engine, bindparam, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import DBAPIError
 
+from backend.domain.bridge import PaperOperatorAction
 from backend.domain.config import ApiSettings
 from backend.domain.contracts import AgentConfiguration, RiskPolicy
 from backend.domain.telegram import SourceConfiguration
@@ -279,6 +280,8 @@ class DashboardService:
             "audit": ("dashboard_audit", "created_at DESC,id"),
             "status": ("api_heartbeats", "service_name,instance_id"),
             "positions": ("api_positions", "opened_at DESC,id"),
+            "paper-accounts": ("api_paper_accounts", "id"),
+            "paper-operations": ("api_paper_operations", "created_at DESC,id"),
             "orders": ("api_orders", "created_at DESC,id"),
             "signals": ("api_signals", "created_at DESC,id"),
             "sources": ("dashboard_sources", "name,id"),
@@ -389,6 +392,14 @@ class DashboardService:
             elif kind == "source":
                 UUID(target)
                 payload["value"] = SourceConfiguration.model_validate(value).model_dump(mode="json")
+            elif kind in {"paper_position", "paper_resume"}:
+                UUID(target)
+                action = PaperOperatorAction.model_validate(value)
+                if self.settings.app_env not in {"development", "test"} or (
+                    (kind == "paper_resume") != (action.action == "RESUME")
+                ):
+                    raise ValueError("local paper action required")
+                payload["value"] = action.model_dump(mode="json")
             elif kind == "agent":
                 config = AgentConfiguration.model_validate(value)
                 agents = self.rows("agents")["rows"]

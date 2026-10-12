@@ -67,7 +67,9 @@ from backend.infrastructure.domain_models import (
     TelegramSource,
     TradingAccount,
 )
+from backend.infrastructure.position_models import PaperPositionState
 from backend.infrastructure.repositories import LifecycleRepository
+from backend.trading.position_gateway import PositionManagement
 
 
 class PaperGateway:
@@ -158,6 +160,7 @@ class _AccountTransaction:
         self.env = self.p.account.environment_id
         self.now = connection.scalar(text("SELECT clock_timestamp()"))
         self.lifecycle = LifecycleRepository(connection, self.env)
+        self.management = PositionManagement(self)
 
     def rows(self, model, *conditions, order=None, limit=None):
         query = select(model).where(model.environment_id == self.env, *conditions)
@@ -399,6 +402,9 @@ class _AccountTransaction:
                     ]
                 )
             )
+            protection = self.one(
+                PaperPositionState, PaperPositionState.position_id == position["id"]
+            )
             if (
                 item is None
                 or item.command_id != command.command_id
@@ -406,8 +412,9 @@ class _AccountTransaction:
                 or item.volume != position["volume"]
                 or item.entry_price != position["entry_price"]
                 or item.side != command.side
-                or item.stop_loss != command.stop_loss
-                or item.take_profit != command.take_profit
+                or item.stop_loss != (protection["stop_loss"] if protection else command.stop_loss)
+                or item.take_profit
+                != (protection["take_profit"] if protection else command.take_profit)
             ):
                 raise ProtocolError("PORTFOLIO_CONFLICT")
         if any(
@@ -816,6 +823,13 @@ class _AccountTransaction:
             return
 
     def revoke(self, row):
+        operation = self.management.operation(row["id"])
+        if operation:
+            self.transition(
+                "command", row, "EXPIRED" if row["expires_at"] <= self.now else "INVALIDATED"
+            )
+            self.management.reject(operation, "POSITION_COMMAND_INVALIDATED")
+            return
         self.transition(
             "command", row, "EXPIRED" if row["expires_at"] <= self.now else "INVALIDATED"
         )
@@ -839,6 +853,9 @@ class _AccountTransaction:
         ):
             if row["expires_at"] <= self.now:
                 self.uncertain(row)
+        management = self.management.poll(snapshot)
+        if management is not None:
+            return management
         if self.account["status"] != "READY" or self.enrollment["fault_latched"]:
             return {"status": self.account["status"], "command": None}
         if not self.rows(ExecutionCommand, ExecutionCommand.state == "READY"):
@@ -893,6 +910,10 @@ class _AccountTransaction:
         }
 
     def uncertain(self, row):
+        operation = self.management.operation(row["id"])
+        if operation:
+            self.management.uncertain(row, operation)
+            return
         if row["state"] in {"DELIVERED", "ACKNOWLEDGED"}:
             self.transition("command", row, "OUTCOME_UNKNOWN")
         if row["state"] == "OUTCOME_UNKNOWN":
@@ -940,6 +961,11 @@ class _AccountTransaction:
                 summary=event.model_dump(mode="json"),
                 observed_at=event.observed_at,
             )
+            operation = self.management.operation(row["id"])
+            if operation:
+                self.management.event(row, operation, event)
+                accepted.append(str(event.event_id))
+                continue
             order = self.one(Order, Order.command_id == row["id"])
             record = self.one(PaperCommandRecord, PaperCommandRecord.command_id == row["id"])
             if event.kind in {"FILL", "RECONCILED_FILL"}:
@@ -1021,11 +1047,31 @@ class _AccountTransaction:
                 status="OPEN",
                 opened_at=event.observed_at,
             )
+            self.add(
+                PaperPositionState,
+                id=uuid4(),
+                account_id=self.p.account_id,
+                position_id=position_id,
+                stop_loss=command.stop_loss,
+                take_profit=command.take_profit,
+            )
         else:
             position_id = position["id"]
-            average = (
-                position["entry_price"] * position["volume"] + event.price * event.volume
-            ) / (position["volume"] + event.volume)
+            prior_fills = self.rows(
+                PositionEvent,
+                PositionEvent.position_id == position_id,
+                PositionEvent.event_type == "PAPER_FILL",
+            )
+            entry_value = sum(
+                (
+                    Decimal(e["summary"]["volume"]) * Decimal(e["summary"]["price"])
+                    for e in prior_fills
+                ),
+                Decimal(0),
+            )
+            average = (entry_value + event.price * event.volume) / (
+                position["volume"] + event.volume
+            )
             self.change(
                 Position,
                 Position.id == position_id,
