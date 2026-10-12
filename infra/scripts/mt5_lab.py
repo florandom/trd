@@ -18,6 +18,16 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def compile_lab(directory: Path) -> Path:
+    return compile_mql(directory, "TrdLocalBridge.mq5", ["mql_host.hpp"], "runner.cpp")
+
+
+def compile_native(directory: Path) -> Path:
+    return compile_mql(
+        directory, "TrdNativeReadOnly.mq5", ["mql_host.hpp", "native_host.hpp"], "native_runner.cpp"
+    )
+
+
+def compile_mql(directory: Path, entrypoint: str, hosts: list[str], runner_name: str) -> Path:
     compiler = shutil.which("clang++") or shutil.which("g++")
     if compiler is None:
         raise RuntimeError("A local C++ compiler is required for the MQL platform harness")
@@ -26,21 +36,24 @@ def compile_lab(directory: Path) -> Path:
         return re.sub(
             r'^#include "([^"]+)"$',
             lambda match: expand(path.parent / match[1]),
-            path.read_text(),
+            path.read_text(encoding="utf-8"),
             flags=re.MULTILINE,
         )
 
-    source = expand(ROOT / "apps/mt5/Experts/TrdLocalBridge.mq5")
+    source = expand(ROOT / "apps/mt5/Experts" / entrypoint)
     # Mechanical syntax compatibility only; no crypto, JSON, execution or lifecycle
     # implementation is replaced. Includes have already been expanded in order.
     source = re.sub(r"^#(?:property|include) .*$", "", source, flags=re.MULTILINE)
     source = re.sub(r"^input ", "", source, flags=re.MULTILINE)
     source = source.replace("char data[],result[];", "std::vector<char> data,result;")
-    shim = (ROOT / "tests/mt5/mql_host.hpp").read_text().replace("#pragma once\n", "")
-    runner = (ROOT / "tests/mt5/runner.cpp").read_text()
+    shim = "\n".join(
+        (ROOT / "tests/mt5" / host).read_text(encoding="utf-8").replace("#pragma once\n", "")
+        for host in hosts
+    )
+    runner = (ROOT / "tests/mt5" / runner_name).read_text(encoding="utf-8")
     directory.mkdir(parents=True, exist_ok=True)
     cpp = directory / "mql-lab.cpp"
-    cpp.write_text(shim + "\n" + source + "\n" + runner)
+    cpp.write_text(shim + "\n" + source + "\n" + runner, encoding="utf-8")
     binary = directory / "mql-lab"
     sdk_flags = []
     if sys.platform == "darwin":

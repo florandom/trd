@@ -291,6 +291,8 @@ def main() -> int:
             "paper-accept",
             "mt5-accept",
             "mt5-lab",
+            "mt5-native-accept",
+            "mt5-native-prepare",
         ],
     )
     parser.add_argument(
@@ -329,6 +331,14 @@ def main() -> int:
             from infra.scripts.paper_acceptance import main as paper_acceptance
 
             return paper_acceptance()
+        if args.task == "mt5-native-accept":
+            from infra.scripts.mt5_native import accept
+
+            return accept()
+        if args.task == "mt5-native-prepare":
+            from infra.scripts.mt5_native import prepare
+
+            return prepare(args.output_dir)
         if args.task == "mt5-accept":
             from infra.scripts.mt5_acceptance import main as mt5_acceptance
 

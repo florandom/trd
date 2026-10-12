@@ -288,8 +288,17 @@ def test_crash_after_check_rejects_without_broker_submission(mql_binary, tmp_pat
 
 def test_simulation_build_has_no_native_broker_call_or_activation_escape():
     root = Path(__file__).resolve().parents[2] / "apps/mt5"
-    source = "\n".join(p.read_text() for p in root.rglob("*") if p.suffix in {".mq5", ".mqh"})
     import re
+
+    def expand(path):
+        return re.sub(
+            r'^#include "([^"]+)"$',
+            lambda m: expand(path.parent / m[1]),
+            path.read_text(),
+            flags=re.MULTILINE,
+        )
+
+    source = expand(root / "Experts/TrdLocalBridge.mq5")
 
     assert not re.search(
         r"\b(?:OrderSend|OrderSendAsync|OrderCheck|AccountInfo\w*|SymbolInfo\w*|HistorySelect)\s*\(",

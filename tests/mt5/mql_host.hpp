@@ -17,18 +17,18 @@
 #include <unistd.h>
 using string=std::string;using uchar=unsigned char;using uint=uint32_t;using datetime=long;
 constexpr int INVALID_HANDLE=-1,FILE_READ=1,FILE_WRITE=2,FILE_TXT=4,FILE_ANSI=8,FILE_COMMON=16,CP_UTF8=65001;
-constexpr int TIME_DATE=1,TIME_SECONDS=2,INIT_SUCCEEDED=0,INIT_FAILED=1,MQL_TESTER=1;
+constexpr int TIME_DATE=1,TIME_SECONDS=2,INIT_SUCCEEDED=0,INIT_FAILED=1,MQL_TESTER=1,MQL_TRADE_ALLOWED=2;
 using ulong=unsigned long;
 constexpr int TRADE_ACTION_DEAL=1,TRADE_ACTION_SLTP=6,ORDER_TYPE_BUY=0,ORDER_TYPE_SELL=1,ORDER_FILLING_FOK=0,ORDER_TIME_GTC=0;
 constexpr uint TRADE_RETCODE_PLACED=10008,TRADE_RETCODE_DONE=10009,TRADE_RETCODE_DONE_PARTIAL=10010,TRADE_RETCODE_REJECT=10006,TRADE_RETCODE_TIMEOUT=10012,TRADE_RETCODE_NO_MONEY=10019,TRADE_RETCODE_CONNECTION=10031,TRADE_RETCODE_ERROR=10011;
-struct MqlTradeTransaction {};
+struct MqlTradeTransaction { int type=0;string symbol;ulong deal=0,order=0,position=0;double volume=0,price=0; };
 struct MqlTradeRequest {
  int action=0,type=0,type_filling=0,type_time=0;ulong magic=0,order=0,position=0,position_by=0,deviation=0;
  string symbol,comment;double volume=0,price=0,stoplimit=0,sl=0,tp=0;datetime expiration=0;
 };
-struct MqlTradeResult { uint retcode=0,request_id=0;int retcode_external=0;ulong deal=0,order=0;double volume=0,price=0; };
+struct MqlTradeResult { uint retcode=0,request_id=0;int retcode_external=0;ulong deal=0,order=0;double volume=0,price=0;string comment; };
 struct MqlTradeCheckResult { uint retcode=0; };
-static int host_error=0;static string host_root;static bool host_tester=false;
+static int host_error=0;static string host_root;static bool host_tester=false,host_algo_allowed=false,host_disk_failed=false;
 int StringLen(const string &s) { return static_cast<int>(s.size()); }
 string StringSubstr(const string &s,int start,int length=-1) {
  if(start<0||start>=StringLen(s)) return "";return s.substr(start,length<0?string::npos:static_cast<size_t>(length));
@@ -48,7 +48,7 @@ void StringToLower(string &s) { std::transform(s.begin(),s.end(),s.begin(),[](un
 template<class T> int ArraySize(const std::vector<T> &a) { return static_cast<int>(a.size()); }
 template<class T> int ArrayResize(std::vector<T> &a,int n) { a.resize(n);return n; }
 void ResetLastError() { host_error=0; }int GetLastError() { return host_error; }
-int MQLInfoInteger(int) { return host_tester?1:0; }
+int MQLInfoInteger(int property) { return (property==MQL_TESTER?host_tester:host_algo_allowed)?1:0; }
 datetime TimeGMT() { return static_cast<long>(std::time(nullptr)); }
 string TimeToString(datetime value,int flags) { std::time_t t=value;std::tm tm=*std::gmtime(&t);char buffer[32];std::strftime(buffer,sizeof(buffer),flags==TIME_DATE?"%Y.%m.%d":"%Y.%m.%d %H:%M:%S",&tm);return buffer; }
 datetime StringToTime(const string &s) { std::tm tm={};if(!strptime(s.c_str(),"%Y.%m.%d %H:%M:%S",&tm)) return 0;return static_cast<long>(timegm(&tm)); }
@@ -72,6 +72,6 @@ bool FileSeek(int handle,long offset,int origin) { return fseek(host_files.at(ha
 bool FileIsEnding(int handle) { return ftell(host_files.at(handle).stream)>=FileSize(handle); }
 string FileReadString(int handle) { string result;int c;auto file=host_files.at(handle).stream;while((c=fgetc(file))!=EOF&&c!='\n') result+=static_cast<char>(c);if(!result.empty()&&result.back()=='\r') result.pop_back();return result; }
 uint FileWriteString(int handle,const string &value) { return static_cast<uint>(fwrite(value.data(),1,value.size(),host_files.at(handle).stream)); }
-void FileFlush(int handle) { auto f=host_files.at(handle);if(fflush(f.stream)!=0||fsync(f.descriptor)!=0) host_error=3; }
+void FileFlush(int handle) { auto f=host_files.at(handle);if(fflush(f.stream)!=0||fsync(f.descriptor)!=0||host_disk_failed) host_error=3; }
 // HTTP is an explicit loopback RPC into the Python harness, never a broker call.
 int WebRequest(const string &,const string &url,const string &headers,int,const std::vector<char> &data,std::vector<char> &result,string &response_headers);

@@ -22,6 +22,8 @@
     "paper:accept": "node infra/scripts/python-task.mjs paper-accept",
     "mt5:accept": "node infra/scripts/python-task.mjs mt5-accept",
     "mt5:lab": "node infra/scripts/python-task.mjs mt5-lab",
+    "mt5:native:accept": "node infra/scripts/python-task.mjs mt5-native-accept",
+    "mt5:native:prepare": "node infra/scripts/python-task.mjs mt5-native-prepare",
     "retention:run": "node infra/scripts/python-task.mjs retention",
     "check": "node infra/scripts/python-task.mjs check",
     "typecheck": "pnpm --filter @trd/dashboard typecheck",
