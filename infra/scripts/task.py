@@ -289,6 +289,8 @@ def main() -> int:
             "openrouter-accept",
             "openrouter-import",
             "paper-accept",
+            "mt5-accept",
+            "mt5-lab",
         ],
     )
     parser.add_argument(
@@ -327,6 +329,14 @@ def main() -> int:
             from infra.scripts.paper_acceptance import main as paper_acceptance
 
             return paper_acceptance()
+        if args.task == "mt5-accept":
+            from infra.scripts.mt5_acceptance import main as mt5_acceptance
+
+            return mt5_acceptance()
+        if args.task == "mt5-lab":
+            from infra.scripts.mt5_serve import main as mt5_lab
+
+            return mt5_lab(args.output_dir)
         values = (
             dict(os.environ)
             if args.from_process

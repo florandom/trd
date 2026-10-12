@@ -28,4 +28,5 @@ htmlcov/
 dist/
 .env.local
 *.tsbuildinfo
+*.ex5
 !.env.example

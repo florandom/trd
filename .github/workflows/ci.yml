@@ -44,6 +44,8 @@ jobs:
           pnpm install --frozen-lockfile
       - name: Check Python with Ruff
         run: uv run --frozen ruff check backend apps/api apps/worker apps/telegram apps/simulator migrations infra/scripts tests
+      - name: Check C++ compiler for portable MQL tests
+        run: c++ --version
       - name: Run Python unit tests
         run: uv run --frozen pytest -m 'not integration'
       - name: Check dashboard lint and types
