@@ -1,0 +1,10 @@
+{
+  "bind_host": "127.0.0.1",
+  "ports": {
+    "admin_api": 8000,
+    "risk_bridge": 8001,
+    "dashboard": 3000,
+    "postgres": 5432
+  },
+  "postgres_service": "postgresql-x64-17"
+}

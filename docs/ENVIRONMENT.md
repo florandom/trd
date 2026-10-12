@@ -1,6 +1,81 @@
 # Environment and configuration matrix
 
-Status: Phase 0 proposal, 2 October 2026. No `.env`, real credentials or production configuration has been created. The `.env.example` and validators are Phase 1 work. This matrix specifies their contract, rather than implying they already exist.
+Status: preparation before phase 6, 12 October 2026. Scoped configuration, Vercel
+preflight, remote Access/MFA verification and gated OpenRouter are implemented.
+Current installation remains local/mock/off. Real account/domain/Windows acceptance
+remains required. Risk/execution is implemented only for the isolated local paper
+laboratory; native MT5 and real broker execution remain future work. See
+[remote environment fields and export](DEPLOYMENT_VERCEL.md) and
+[OpenRouter fields and acceptance](OPENROUTER.md). Historical phase observations retain
+their original scope; the matrix includes reserved future fields.
+
+## Phase 7 local paper gate
+
+`pnpm paper:accept` generates an isolated database, profile and independent 256-bit
+purpose keys, exercises signed loopback HTTP and cleans up. Operator `.env` is not
+read; no external account/key is required. Real integration setup is deferred to
+final operator acceptance. Normal Compose/default services stay paper/off.
+
+| Risk-only field | Default and gate |
+| --- | --- |
+| PAPER_BRIDGE_ENABLED | `false`; true requires development/test and local profile/keys |
+| PAPER_PROFILE_PATH | Empty; private immutable synthetic enrollment profile |
+| PAPER_REQUEST_KEY | Empty; 64 lowercase hex characters, private request HMAC key |
+| PAPER_RESPONSE_KEY | Empty; independent response HMAC key of the same format |
+
+Only scoped risk export includes these fields. API, AI, collector, maintenance and
+dashboard receive none of them. No browser mutation enables this gate; no real MT5
+credential is used. Preserve ENABLE_AUTOMATION=false and ENABLE_LIVE_TRADING=false.
+[Full constraints and limitations](PAPER_BRIDGE.md).
+
+## Current analysis additions
+
+The AI worker alone consumes cost envelopes and request/lease controls.
+AI_PROVIDER_MODE defaults to mock; openrouter requires a valid expiring receipt,
+matching key/environment and positive budgets. A key alone cannot activate requests.
+ENABLE_ADAPTIVE_MEMORY=true remains rejected. ENABLE_CRITIC_AGENT=true makes
+the configured critic mandatory; the dashboard can also add the optional local critic.
+
+| Variable | Implemented default and bounds |
+| --- | --- |
+| AI_SIGNAL_MAX_AGE_SECONDS | `900`; 30–3600 seconds from publication, rechecked at completion |
+| AI_JOB_LEASE_SECONDS | `180`; 10–300, greater than total deadline plus five seconds |
+| AI_HARD_TIMEOUT_SECONDS | `30`; 1–120 seconds across stages and alternatives |
+| AI_HARD_MAX_OUTPUT_TOKENS | `4096`; 1–4096, tightened by agent/model caps |
+| AI_HARD_DAILY_BUDGET_USD | `0.00`; global daily UTC cost ceiling |
+| AI_HARD_MONTHLY_BUDGET_USD | `0.00`; global monthly UTC cost ceiling |
+| AI_HARD_DAILY_BUDGET_PER_AGENT_USD | `0.00`; per-agent daily ceiling |
+| AI_HARD_MAX_COST_PER_REQUEST_USD | `0.00`; per-attempt ceiling, tightened by agent cap |
+
+Budget values use finite nonnegative decimal strings. Unknown/open attempts retain
+their reservation across periods and restart. Existing `.env` files retain their
+values; add new names to customize defaults and restart the relevant process.
+Paid models also require operator import and confirmed agent selection. See the
+[analysis contract](ANALYSIS.md) and [Italian team guide](team/GUIDA_PREPARAZIONE.md).
+
+## Current Telegram additions
+
+Only the collector receives Telegram application credentials and its session key.
+Dashboard users enter source references through confirmed configuration; phone,
+login codes, two-step passwords and session material never enter that workflow.
+The local terminal command is `pnpm telegram:enroll`; Compose enrollment uses its
+dedicated volume. See [the maintained Italian team guide](team/GUIDA_PREPARAZIONE.md)
+and [the Telegram contract](TELEGRAM.md) for replacement, key rotation and limits.
+
+| Variable | Implemented default / bounds |
+| --- | --- |
+| TELEGRAM_SESSION_KEY_ID | `local-v1`; authenticated envelope key identifier |
+| TELEGRAM_COLLECTOR_IDENTITY | `primary`; matches dashboard-owned sources |
+| TELEGRAM_POLL_SECONDS | `30`; 5–300 seconds |
+| TELEGRAM_BACKFILL_MAX_AGE_SECONDS | `86400`; 60–604800 seconds |
+| TELEGRAM_HISTORY_BATCH_SIZE | `100`; 1–100 records per history request |
+| TELEGRAM_REQUEST_TIMEOUT_SECONDS | `20`; 1–30 seconds per operation |
+| TELEGRAM_SIGNAL_MAX_AGE_SECONDS | `900`; 30–3600 seconds; preliminary analysis-job freshness only |
+
+Enabled collection validates API ID, 32-hex API hash and independent 64-hex
+encryption key. It does not enable trading, providers, sending or joining groups.
+Existing private `.env` values are preserved; add new fields explicitly when
+customizing defaults. Session ciphertext is excluded from Git and container context.
 
 ## Observed local environment
 
@@ -17,7 +92,40 @@ Status: Phase 0 proposal, 2 October 2026. No `.env`, real credentials or product
 | Network | Sandbox registry DNS failed; approved external package metadata/install succeeded | Research succeeded; do not attribute failures to package incompatibility |
 | Windows/MT5 | No target host or broker runtime accessible | Native deployment, EA compile, demo, certificate and reboot tests not run |
 
-The disposable Astryx/Next compatibility spike is outside the repository. See [Astryx evidence](research/ASTRYX.md) and [Phase 0 validation](PHASE_0_VALIDATION.md). No application runtime was installed into this workspace.
+The observations above record the initial Phase 0 inspection. Phase 1 installed uv0.12.22 with Python3.13.16 and an isolated Colima Docker profile; Node24.20.0/pnpm11.25.0 were retained. The actual locked graph and container boot are covered in [Phase 1 validation](PHASE_1_VALIDATION.md).
+
+## Implemented Phase 1 contract
+
+`pnpm setup` replaces declared `__GENERATE__` placeholders using OS cryptographic randomness. Each role receives a separate password; keys are independent 32-byte hex values. It creates `.env` atomically with POSIX mode0600, preserves existing values and refuses non-development/non-paper or automation-enabled templates. On Windows, restrict the file with the deployment ACL procedure; POSIX permission bits alone do not establish Windows ACL protection. Generated secrets are never printed by setup.
+
+The root `.env` belongs to the operator. Runtime settings never auto-load it. Host tasks project an allowlist for each process; Compose interpolates only that service's fields; native Windows templates use an explicit `.env.<service>` via `ENV_FILE`. No browser secret is exported. Configuration errors are reported without raw input values.
+
+| Process | Database login | Credential boundary |
+| --- | --- | --- |
+| One-shot provisioner | Local `trd_bootstrap` superuser | Admin connection only, absent from services |
+| Migration/bootstrap | `trd_migrator` with `trd_owner` membership | Schema/setup authority, absent from services |
+| API | `trd_api` | Safe SELECT projections and own heartbeat only |
+| Collector | `trd_collector` | Own heartbeat; reserved Telegram fields only |
+| AI placeholder | `trd_ai` | Own heartbeat; reserved provider fields only |
+| Isolated bridge | `trd_risk` | Own heartbeat; reserved bridge keys/hard bounds only |
+| Maintenance | `trd_maintenance` | Own heartbeat; reserved alert/retention fields only |
+| Dashboard server | None | Origin/environment plus proxy key and API Access service token; no database/provider/Telegram/MT5 credentials |
+
+Provisioning requires PostgreSQL17. It creates missing roles/database, rejects unsafe existing roles or unexpected memberships, never resets role passwords, revokes public schema CREATE, and grants schema DDL only to a non-login owner. The migrator assumes that owner explicitly. Runtime roles cannot read raw password hashes, settings history or audit details, and cannot write table rows. A fixed-search-path heartbeat function derives service identity from the database login. These grants are checked against a real database.
+
+`APP_ENV` permits development/test/staging/production. Runtime remains paper with
+automation/live/pending/partial-close disabled. Telegram requires enrollment; OpenRouter
+requires explicit acceptance. Staging/production require strong role passwords,
+non-debug logging and absolute storage paths. Remote API requires cloudflare mode,
+HTTPS, secure cookies, MFA claims, fixed issuer/audience and proxy key. These guards
+do not certify a real deployment. Independent PostgreSQL instances are required for
+independent role credentials between environments.
+
+`DATABASE_ADMIN_URL`, `API_DATABASE_URL`, `COLLECTOR_DATABASE_URL`, `AI_DATABASE_URL`, `RISK_DATABASE_URL` and `MAINTENANCE_DATABASE_URL` are operator fields. Each runtime receives its role URL under `DATABASE_URL`. `POSTGRES_HOST/PORT` are used when generating local URLs; `API_PORT`, `BRIDGE_PORT`, `DASHBOARD_PORT`, `REDIS_PORT` select loopback host ports. Compose rewrites database host/port to its fixed internal PostgreSQL address. Local `API_INTERNAL_URL` must match the API port; the container dashboard uses `http://api:8000`.
+
+The six seeded settings use immutable version rows plus current-version references. Repeat bootstrap preserves both passwords and settings; orphaned history fails rather than being overwritten. The admin email default is `admin@localhost.invalid` and the password is unique, generated and retained privately for later login work. No login route exists in this phase. Removing bootstrap credentials is appropriate after provisioning a deployed environment; repeated local initialization currently requires them to remain available.
+
+Logs use structured JSON and rotating files in each service's separate data/log location. Health responses contain only status, service, phase, paper mode, disabled automation and UTC observation time. Default heartbeat interval is10 seconds; STARTING/HEALTHY/DEGRADED/STOPPED reflect process and database state. Redis is not a readiness dependency. Retention variables are reserved policy fields; the scheduled retention engine is not implemented yet.
 
 ## Authority and units
 
@@ -35,7 +143,7 @@ The numeric defaults below are conservative test/bootstrap bounds, not a recomme
 | --- | --- | --- | --- |
 | APP_ENV | `development`; enum development/test/production | No | All; deploy config |
 | APP_URL | Local origin in development; required HTTPS production origin | No | API/edge; fixed trusted origin |
-| LOG_LEVEL | `INFO`; production DEBUG needs reviewed redaction | No | All |
+| LOG_LEVEL | `INFO`; production DEBUG rejected in Phase 1 | No | All |
 | TIMEZONE | `Europe/Rome` display; internal UTC | No | API/dashboard |
 | ENVIRONMENT_ID | Unique paper/demo/live deployment identity; required | No | API/worker/bridge/EA |
 | DATABASE_URL | Required per-process least-privilege DSN; no hardcoded password | Yes | Each Python process gets its own role-scoped value |
@@ -86,7 +194,7 @@ The numeric defaults below are conservative test/bootstrap bounds, not a recomme
 | MT5_HEARTBEAT_MAX_AGE_SECONDS | `10`; proposed pending runtime measurements | No | Risk/bridge health |
 | MT5_MAX_CLOCK_SKEW_SECONDS | `3`; sync and replay checks | No | Bridge/EA; reject beyond configured bound |
 | MANAGED_MAGIC_NUMBER | Per-environment configured integer | No | Risk/EA; ownership hint, not sufficient proof |
-| TRADING_MODE | `paper`; enum paper/demo/live | No | Deployment-only; visible browser status |
+| TRADING_MODE | `paper`; Phase 1 rejects demo/live; target later paper/demo/live | No | Deployment-only; visible browser status |
 | HARD_MAX_RISK_PER_TRADE | `0.01` fraction of equity | No | Risk executor; secure maximum |
 | HARD_MAX_DAILY_LOSS | `0.03` cash-flow-adjusted equity fraction | No | Risk executor |
 | HARD_MAX_TOTAL_OPEN_RISK | `0.03`; includes reservations/all-account exposure | No | Risk executor |

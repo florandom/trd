@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "environment_id": "staging-paper",
+  "reviewed_at": "2000-01-01T00:00:00Z",
+  "expires_at": "2000-01-02T00:00:00Z",
+  "models": [
+    {
+      "id": "or-reviewed-model-provider-v1",
+      "provider": "openrouter",
+      "model_name": "vendor/replace-with-reviewed-model",
+      "enabled": true,
+      "schema_version": 1,
+      "max_output_tokens": 1024,
+      "input_token_limit": 131072,
+      "input_price_per_million": "1.00",
+      "output_price_per_million": "1.00",
+      "pricing_version": "replace-with-provider-review-version",
+      "currency": "USD",
+      "provider_slug": "replace-with-endpoint-tag",
+      "provider_label": "Replace with exact provider name"
+    }
+  ]
+}

@@ -1,17 +1,32 @@
-# Phase 0 housekeeping; no application scaffold.
+# Private state and generated build artifacts.
 .env
 .env.*
 !.env.example
 !.env.*.example
 *.session
 *.session-journal
+*.session.enc
 *.pem
 *.key
 *.pfx
 *.p12
 logs/
 data/
+private/
 node_modules/
 .venv/
 __pycache__/
 .DS_Store
+.tools/
+.next/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.egg-info/
+dist/
+.env.local
+*.tsbuildinfo
+*.ex5
+!.env.example

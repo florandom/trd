@@ -1,6 +1,8 @@
 # Phase 0 architecture decision records
 
-All decisions below are **proposed** pending Architecture Approval Gate. Date: 2 October 2026. Approval accepts the direction; later acceptance tests still decide whether a deployment or broker capability is supported.
+The phase 0 direction was approved and phases 1–5 were implemented. Historical
+decisions date from 2 October 2026; ADR 011 records preparation authorized on
+12 October 2026. Real deployment and broker acceptance remain independent gates.
 
 | ADR | Decision |
 | --- | --- |
@@ -14,6 +16,7 @@ All decisions below are **proposed** pending Architecture Approval Gate. Date: 2
 | 008 | Astryx/React19/Next16 with verified StyleX build path |
 | 009 | Paper-first isolation; conservative broker capabilities |
 | 010 | Compact evidence retention; approval-only adaptive proposals |
+| 011 | Vercel dashboard, persistent portable backend and gated OpenRouter |
 
 ## ADR 001 — monolith with separate runtime privileges
 
@@ -54,3 +57,26 @@ All decisions below are **proposed** pending Architecture Approval Gate. Date: 2
 ## ADR 010 — evidence-aware retention and non-autonomous learning
 
 **Context:** Verbose data should expire without losing explanations or recovery state. User wants learning without self-changing safety. **Decision:** Seven-day raw logs/Telegram/AI defaults; long-term compact validated decision/risk/economic records, audit/config versions and trade memory. Preserve anchors/journal/replay for open/pending/unknown execution. History aggregates may suggest changes; ADMIN approves bounded changes. **Trade-off:** Long-term summaries need data-minimization review and storage monitoring; raw exact text may no longer be available after policy expiry. **Rejected:** Cascading deletion of trade evidence, free prompt edits and autonomous safety/trust updates. **Acceptance:** Cleanup interruption/open-position/unknown-command fixtures; history cannot mutate policy; restore remains paused.
+
+## ADR 011 — Vercel dashboard and gated OpenRouter
+
+Updated 12 October 2026, implementing the user's requested topology before phase 6.
+The Python modular backend and separate roles remain approved. Next BFF runs on
+Vercel; persistent workers/PostgreSQL remain on Windows with a Linux adapter.
+Staging and production use separate PostgreSQL instances, accounts and storage.
+Fixed Access human identity with MFA, a separate API service token, BFF key and
+bidirectional environment checks protect administrative requests. Preview uses
+only an approved staging hostname. Existing password/RBAC/CSRF/confirmation controls
+remain. Cloudflare in front of Vercel adds an operational DNS/TLS/cache acceptance
+requirement; the real host has not been certified by local tests.
+
+OpenRouter is the implemented external route; the direct OpenAI adapter stays offline.
+Explicit bounded synthetic tests generate a private expiring environment/key-bound
+receipt; operator import creates immutable profiles. The worker reserves full published
+context and caps output/provider prices. Unknown cost retains budget and prevents
+resubmission. Reported billing remains distinct from conservative accounted cost.
+Account/model/provenance/privacy/billing acceptance and authorized fixture quality
+review are required; no model result grants risk or execution authority.
+
+Evidence and operator steps: [Vercel](../DEPLOYMENT_VERCEL.md),
+[OpenRouter](../OPENROUTER.md), [validation](../PHASE_5B_VALIDATION.md).

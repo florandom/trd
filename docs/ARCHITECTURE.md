@@ -1,6 +1,24 @@
-# Autonomous trading orchestration — Phase 0 architecture
+# Autonomous trading orchestration architecture
 
-Status: proposed, awaiting the Architecture Approval Gate. Research date: 2 October 2026. This is a design, not a working or production-certified platform. Phase 1 has not started. See [approval gate](PHASE_0_APPROVAL.md), [environment](ENVIRONMENT.md), [threat model](THREAT_MODEL.md), [ADRs](adr/README.md), and [validation record](PHASE_0_VALIDATION.md).
+Status: approved direction, phases 1–7 implemented within local paper acceptance.
+Phase 7 wires the pure risk engine to authenticated synthetic observations, atomic
+reservations, signed commands and a durable simulator. The local position extension
+adds confirmed full closes, protective updates and controlled resume. The
+[MQL5 local bridge](MT5_LOCAL.md) now has a simulation-only EA source and a portable
+platform harness. Its [MT5 request adapter](MT5_BROKER_LOCAL.md) prepares market,
+protective-update and targeted-close requests through a synthetic terminal port;
+the separate [native local reader](MT5_NATIVE_LOCAL.md) now observes account, market,
+portfolio/history and transactions with submission excluded. MetaEditor/terminal
+and real broker acceptance remain gates.
+[Paper bridge](PAPER_BRIDGE.md),
+[phase 7 evidence](PHASE_7_VALIDATION.md), [position evidence](POSITION_MANAGEMENT_VALIDATION.md).
+Vercel/OpenRouter preparation remains subject to real-host acceptance.
+Research baseline: 2 October 2026. See [risk contract](RISK.md) and
+[phase 6 evidence](PHASE_6_VALIDATION.md).
+Later sections describe future risk/execution capabilities, not completed features
+or production certification. See [deployment](DEPLOYMENT_VERCEL.md),
+[OpenRouter acceptance](OPENROUTER.md), [approval](PHASE_0_APPROVAL.md),
+[environment](ENVIRONMENT.md), [threat model](THREAT_MODEL.md) and [ADRs](adr/README.md).
 
 ## 1. Final architectural choice
 
@@ -14,20 +32,38 @@ Use one Python modular monolith with independent process entrypoints, one Next.j
 | Persistence | PostgreSQL 17; SQLAlchemy 2.0; psycopg 3; Alembic | Durable state, leases, outbox, reservations, replay claims, sessions, audit |
 | Workers | Same Python package, separate entrypoints/permissions | Ingestion, AI orchestration, deterministic risk/execution, maintenance/notifications |
 | Telegram | Telethon/MTProto | Collector with encrypted durable session and reconnect |
-| AI | Provider interface; mock first, OpenAI first network adapter | Schema-bound advisory results, registry-controlled models, budgeted routing |
+| AI | Mock default; OpenRouter gated network adapter | Schema-bound advisory results, immutable accepted profiles and conservative budgets |
 | Execution | Isolated Python risk/bridge HTTP-worker entrypoint; native MQL5 EA; protocol simulator | Command signing, authenticated telemetry/replay, authoritative portfolio, reconciliation |
-| Edge | Caddy plus Cloudflare Tunnel/Access for external access | Same-origin dashboard/API, local bridge TLS; without Access, local/VPN-only until equivalent MFA exists |
+| Edge | Vercel Next BFF plus Cloudflare Access/Tunnel | Fixed origin, human MFA assertion, API service token and environment fence; bridge remains isolated |
 | Redis | Optional development/cache dependency | Acceleration only; no exclusive queue, lock, session, replay or risk authority |
 
 Exact package observations and source links live in [backend research](research/BACKEND.md) and [Astryx research](research/ASTRYX.md). A disposable Next/Astryx production build and custom StyleX CSS emission passed. Authored StyleX uses the tested community SWC plugin 0.19.0 with `next dev/build --webpack`; the custom Turbopack path remains untested. Version numbers are a dated research baseline. Phase 1 resolves exact locks and image digests, scans them, and runs runtime/build/migration checks; metadata alone is not backend compatibility certification. SQLAlchemy 2.0 is deliberately the maintenance baseline rather than a just-released 2.1 upgrade.
 
 ## 2. Deployment strategy
 
+**Current selected topology:** dashboard and fixed administrative Next routes on
+Vercel, persistent API/PostgreSQL/workers on Windows, portable to Linux. Development
+remains local. Staging/production use separate PostgreSQL instances, credentials,
+storage and provider accounts. Vercel preview cannot use production and requires an
+approved staging hostname. API checks signed MFA-bearing human assertions, proxy key
+and environment; BFF checks response environment. Password/session/RBAC/CSRF and
+confirmed configuration remain authoritative. [Real-host acceptance](DEPLOYMENT_VERCEL.md)
+
 **macOS development:** Docker Compose supplies PostgreSQL, optional Redis and containerized API/workers/dashboard. A host-development override disables duplicate application containers so `pnpm dev` and Python development entrypoints can use the same local services. A default paper simulator exercises the whole protocol. Fresh-install scripts create local random secrets, migrate, and bootstrap a non-live administrator without committed passwords. No MT5 is required for local paper development.
 
 **Production A, conditional preference:** Windows Server 2022 Desktop Experience, provider-enabled nested virtualization, WSL2 Ubuntu, Docker Engine/Compose inside Ubuntu. Windows natively runs MT5/EA, RDP/browser, Caddy and cloudflared. A Windows boot supervisor under the WSL distribution owner starts and keeps WSL alive; container restart policies alone are insufficient. Never require Docker Desktop on Windows Server. Validate this topology before selecting it.
 
-**Production B, complete fallback:** the same Python wheel/virtual environment, Windows-built Next.js standalone artifact, PostgreSQL 17 Windows service, and pinned WinSW application services. Disable Redis; use the PostgreSQL adapters. Caddy/cloudflared remain native services. No WSL, Docker Desktop, nested virtualization, Gunicorn, uvloop or Celery dependency.
+**Production B, native Windows:** Python virtual environment, PostgreSQL 17 Windows
+services, pinned WinSW application services and native cloudflared. Use -BackendOnly
+with independent service prefixes/ports when the dashboard is on Vercel. A Windows-built
+Next standalone artifact remains an optional all-local alternative. Disable Redis and
+use PostgreSQL adapters. No WSL, Docker Desktop, nesting, Gunicorn, uvloop or Celery dependency.
+
+**Linux backend:** the backend Compose overlay supports explicit staging/production,
+loopback ports, distinct project volumes and read-only acceptance mounts. It does not
+move MT5 to Linux or certify an untested host. OpenRouter defaults off and requires
+an expiring receipt, immutable profile import, positive budgets and confirmed selection;
+no model output gains execution authority. [OpenRouter contract](OPENROUTER.md)
 
 Server 2022 is the first target to match the observed PostgreSQL 17 Windows installer test matrix. Server 2025 requires its own native PostgreSQL/version verification, or the conditional WSL path. Architecture is portable; deployment support is earned through tests.
 

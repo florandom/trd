@@ -1,0 +1,23 @@
+# Explicit Linux/container backend deployment. The dashboard runs on Vercel.
+# Each environment MUST use a different project name, host ports and PostgreSQL instance.
+services:
+  initialize:
+    command: [initialize, --deployment]
+  api:
+    command: [api, --deployment]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live',timeout=3)"]
+  bridge:
+    command: [risk, --deployment]
+  worker:
+    command: [ai, --deployment]
+    volumes:
+      - ./data/ai:/var/trd/acceptance:ro
+  telegram:
+    command: [collector, --deployment]
+  maintenance:
+    command: [maintenance, --deployment]
+  dashboard:
+    profiles: [local-dashboard]
+  redis:
+    profiles: [optional-cache]

@@ -1,0 +1,38 @@
+{
+  "name": "trd-platform",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=24.20.0 <25",
+    "pnpm": "11.25.0"
+  },
+  "scripts": {
+    "dev": "node infra/scripts/python-task.mjs dev",
+    "setup": "node infra/scripts/python-task.mjs init-env",
+    "db:provision": "node infra/scripts/python-task.mjs provision-db",
+    "db:migrate": "node infra/scripts/python-task.mjs migrate",
+    "db:bootstrap": "node infra/scripts/python-task.mjs bootstrap",
+    "user:create": "node infra/scripts/python-task.mjs user-create",
+    "telegram:enroll": "node infra/scripts/python-task.mjs telegram-enroll",
+    "env:export": "node infra/scripts/python-task.mjs export-env",
+    "env:new": "node infra/scripts/python-task.mjs new-env",
+    "ai:accept": "node infra/scripts/python-task.mjs openrouter-accept",
+    "ai:import": "node infra/scripts/python-task.mjs openrouter-import",
+    "paper:accept": "node infra/scripts/python-task.mjs paper-accept",
+    "mt5:accept": "node infra/scripts/python-task.mjs mt5-accept",
+    "mt5:lab": "node infra/scripts/python-task.mjs mt5-lab",
+    "mt5:native:accept": "node infra/scripts/python-task.mjs mt5-native-accept",
+    "mt5:native:prepare": "node infra/scripts/python-task.mjs mt5-native-prepare",
+    "retention:run": "node infra/scripts/python-task.mjs retention",
+    "check": "node infra/scripts/python-task.mjs check",
+    "typecheck": "pnpm --filter @trd/dashboard typecheck",
+    "lint": "pnpm --filter @trd/dashboard lint",
+    "build": "pnpm --filter @trd/dashboard build",
+    "test": "node infra/scripts/python-task.mjs test",
+    "api:generate": "node infra/scripts/python-task.mjs generate-api"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0"
+  }
+}

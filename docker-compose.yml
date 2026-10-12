@@ -1,0 +1,219 @@
+name: trd
+
+x-common-env: &common-env
+  APP_ENV: ${APP_ENV:-development}
+  APP_URL: ${APP_URL:-http://localhost:3000}
+  ENVIRONMENT_ID: ${ENVIRONMENT_ID:-local-paper}
+  TRADING_MODE: ${TRADING_MODE:-paper}
+  ENABLE_AUTOMATION: ${ENABLE_AUTOMATION:-false}
+  ENABLE_LIVE_TRADING: ${ENABLE_LIVE_TRADING:-false}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  TIMEZONE: ${TIMEZONE:-Europe/Rome}
+  DATA_DIR: /var/trd/data
+  LOG_DIR: /var/trd/logs
+
+x-backend: &backend
+  image: trd-backend:phase1
+  build:
+    context: .
+    dockerfile: infra/docker/backend.Dockerfile
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  tmpfs: ['/tmp:rw,noexec,nosuid,size=32m']
+  logging:
+    driver: json-file
+    options: {max-size: 10m, max-file: '3'}
+  depends_on:
+    initialize: {condition: service_completed_successfully}
+
+services:
+  postgres:
+    image: postgres:17.11-bookworm@sha256:639ab7ceb90e13123085b741fb31ef493fba25463002f6da665352e7b534b652
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-trd}
+      POSTGRES_USER: ${POSTGRES_USER:-trd_bootstrap}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run pnpm setup before starting}
+    ports: ['127.0.0.1:${POSTGRES_PORT:-5432}:5432']
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
+
+  redis:
+    image: redis:8.2.2-bookworm@sha256:4521b581dbddea6e7d81f8fe95ede93f5648aaa66a9dacd581611bf6fe7527bd
+    restart: unless-stopped
+    command: [redis-server, --save, '', --appendonly, 'no']
+    ports: ['127.0.0.1:${REDIS_PORT:-6379}:6379']
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
+
+  initialize:
+    image: trd-backend:phase1
+    build:
+      context: .
+      dockerfile: infra/docker/backend.Dockerfile
+    command: [initialize]
+    restart: 'no'
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ['/tmp:rw,noexec,nosuid,size=32m']
+    depends_on:
+      postgres: {condition: service_healthy}
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      ENVIRONMENT_ID: ${ENVIRONMENT_ID:-local-paper}
+      POSTGRES_DB: ${POSTGRES_DB:-trd}
+      DATABASE_ADMIN_URL: ${DATABASE_ADMIN_URL:?Run pnpm setup}
+      MIGRATION_DATABASE_URL: ${MIGRATION_DATABASE_URL:?Run pnpm setup}
+      API_DATABASE_URL: ${API_DATABASE_URL:?Run pnpm setup}
+      COLLECTOR_DATABASE_URL: ${COLLECTOR_DATABASE_URL:?Run pnpm setup}
+      AI_DATABASE_URL: ${AI_DATABASE_URL:?Run pnpm setup}
+      RISK_DATABASE_URL: ${RISK_DATABASE_URL:?Run pnpm setup}
+      MAINTENANCE_DATABASE_URL: ${MAINTENANCE_DATABASE_URL:?Run pnpm setup}
+      ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL:?Configure local bootstrap email}
+      ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD:?Run pnpm setup}
+
+  api:
+    <<: *backend
+    command: [api]
+    environment:
+      <<: *common-env
+      DATABASE_URL: ${API_DATABASE_URL:?Run pnpm setup}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+      AUTH_SESSION_TTL_SECONDS: ${AUTH_SESSION_TTL_SECONDS:-28800}
+      AUTH_IDLE_TTL_SECONDS: ${AUTH_IDLE_TTL_SECONDS:-1800}
+      AUTH_MFA_REQUIRED: ${AUTH_MFA_REQUIRED:-false}
+      REMOTE_ACCESS_MODE: ${REMOTE_ACCESS_MODE:-local}
+      DASHBOARD_PROXY_SECRET: ${DASHBOARD_PROXY_SECRET:-}
+      CLOUDFLARE_ACCESS_ISSUER: ${CLOUDFLARE_ACCESS_ISSUER:-}
+      CLOUDFLARE_ACCESS_AUDIENCE: ${CLOUDFLARE_ACCESS_AUDIENCE:-}
+    ports: ['127.0.0.1:${API_PORT:-8000}:8000']
+    volumes: [api_data:/var/trd]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready',timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  bridge:
+    <<: *backend
+    command: [risk]
+    environment:
+      <<: *common-env
+      DATABASE_URL: ${RISK_DATABASE_URL:?Run pnpm setup}
+      HARD_MAX_RISK_PER_TRADE: ${HARD_MAX_RISK_PER_TRADE:-0.01}
+      HARD_MAX_DAILY_LOSS: ${HARD_MAX_DAILY_LOSS:-0.03}
+      HARD_MAX_TOTAL_OPEN_RISK: ${HARD_MAX_TOTAL_OPEN_RISK:-0.03}
+      HARD_MAX_OPEN_POSITIONS: ${HARD_MAX_OPEN_POSITIONS:-3}
+      HARD_MAX_LOTS: ${HARD_MAX_LOTS:-1.00}
+      HARD_MAX_EFFECTIVE_LEVERAGE: ${HARD_MAX_EFFECTIVE_LEVERAGE:-10}
+      HARD_REQUIRE_STOP_LOSS: ${HARD_REQUIRE_STOP_LOSS:-true}
+      HARD_REQUIRE_TAKE_PROFIT: ${HARD_REQUIRE_TAKE_PROFIT:-true}
+      ENABLE_PENDING_ORDERS: ${ENABLE_PENDING_ORDERS:-false}
+      ENABLE_PARTIAL_CLOSE: ${ENABLE_PARTIAL_CLOSE:-false}
+    ports: ['127.0.0.1:${BRIDGE_PORT:-8001}:8001']
+    volumes: [bridge_data:/var/trd]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health/live',timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  worker:
+    <<: *backend
+    command: [ai]
+    environment:
+      <<: *common-env
+      DATABASE_URL: ${AI_DATABASE_URL:?Run pnpm setup}
+      AI_PROVIDER_MODE: ${AI_PROVIDER_MODE:-mock}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_ACCEPTANCE_PATH: ${OPENROUTER_ACCEPTANCE_PATH:-}
+      AI_HARD_MAX_INPUT_TOKENS: ${AI_HARD_MAX_INPUT_TOKENS:-131072}
+      AI_HARD_DAILY_BUDGET_USD: ${AI_HARD_DAILY_BUDGET_USD:-0.00}
+      AI_HARD_MONTHLY_BUDGET_USD: ${AI_HARD_MONTHLY_BUDGET_USD:-0.00}
+      AI_HARD_DAILY_BUDGET_PER_AGENT_USD: ${AI_HARD_DAILY_BUDGET_PER_AGENT_USD:-0.00}
+      AI_HARD_MAX_COST_PER_REQUEST_USD: ${AI_HARD_MAX_COST_PER_REQUEST_USD:-0.00}
+      AI_HARD_MAX_OUTPUT_TOKENS: ${AI_HARD_MAX_OUTPUT_TOKENS:-4096}
+      AI_HARD_TIMEOUT_SECONDS: ${AI_HARD_TIMEOUT_SECONDS:-30}
+      AI_SIGNAL_MAX_AGE_SECONDS: ${AI_SIGNAL_MAX_AGE_SECONDS:-900}
+      AI_JOB_LEASE_SECONDS: ${AI_JOB_LEASE_SECONDS:-180}
+      ENABLE_CRITIC_AGENT: ${ENABLE_CRITIC_AGENT:-false}
+      ENABLE_ADAPTIVE_MEMORY: 'false'
+    volumes: [worker_data:/var/trd]
+
+  telegram:
+    <<: *backend
+    command: [collector]
+    environment:
+      <<: *common-env
+      DATABASE_URL: ${COLLECTOR_DATABASE_URL:?Run pnpm setup}
+      TELEGRAM_ENABLED: ${TELEGRAM_ENABLED:-false}
+      TELEGRAM_API_ID: ${TELEGRAM_API_ID:-}
+      TELEGRAM_API_HASH: ${TELEGRAM_API_HASH:-}
+      TELEGRAM_SESSION_ENCRYPTION_KEY: ${TELEGRAM_SESSION_ENCRYPTION_KEY:-}
+      TELEGRAM_SESSION_KEY_ID: ${TELEGRAM_SESSION_KEY_ID:-local-v1}
+      TELEGRAM_COLLECTOR_IDENTITY: primary
+      TELEGRAM_SESSION_PATH: /var/trd/data/telegram.session.enc
+      TELEGRAM_POLL_SECONDS: ${TELEGRAM_POLL_SECONDS:-30}
+      TELEGRAM_BACKFILL_MAX_AGE_SECONDS: ${TELEGRAM_BACKFILL_MAX_AGE_SECONDS:-86400}
+      TELEGRAM_HISTORY_BATCH_SIZE: ${TELEGRAM_HISTORY_BATCH_SIZE:-100}
+      TELEGRAM_REQUEST_TIMEOUT_SECONDS: ${TELEGRAM_REQUEST_TIMEOUT_SECONDS:-20}
+      TELEGRAM_SIGNAL_MAX_AGE_SECONDS: ${TELEGRAM_SIGNAL_MAX_AGE_SECONDS:-900}
+    volumes: [telegram_data:/var/trd]
+
+  maintenance:
+    <<: *backend
+    command: [maintenance]
+    environment:
+      <<: *common-env
+      DATABASE_URL: ${MAINTENANCE_DATABASE_URL:?Run pnpm setup}
+    volumes: [maintenance_data:/var/trd]
+
+  dashboard:
+    image: trd-dashboard:phase1
+    build:
+      context: .
+      dockerfile: infra/docker/dashboard.Dockerfile
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ['/tmp:rw,noexec,nosuid,size=32m']
+    environment:
+      API_INTERNAL_URL: http://api:8000
+      HOSTNAME: 0.0.0.0
+      PORT: '3000'
+    ports: ['127.0.0.1:${DASHBOARD_PORT:-3000}:3000']
+    depends_on:
+      api: {condition: service_started}
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
+
+volumes:
+  postgres_data:
+  api_data:
+  bridge_data:
+  worker_data:
+  telegram_data:
+  maintenance_data:

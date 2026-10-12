@@ -1,0 +1,15 @@
+packages:
+  - apps/dashboard
+  - packages/*
+
+allowBuilds:
+  '@astryxdesign/cli': false
+  '@astryxdesign/core': false
+  '@swc/core@1.16.13': true
+  esbuild@0.28.2: true
+  unrs-resolver@1.12.2: true
+
+minimumReleaseAgeExclude:
+  - '@astryxdesign/cli@0.6.4'
+  - '@astryxdesign/core@0.6.4'
+  - '@astryxdesign/theme-neutral@0.6.4'

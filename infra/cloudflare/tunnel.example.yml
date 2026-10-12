@@ -1,0 +1,7 @@
+# Template only. Configure a distinct named tunnel and Access applications per environment.
+tunnel: replace-with-environment-tunnel-id
+credentials-file: /absolute/private/path/tunnel-credentials.json
+ingress:
+  - hostname: api-staging.example.com
+    service: http://127.0.0.1:8010
+  - service: http_status:404
