@@ -1,127 +1,89 @@
-# TRD Guida operativa per il cliente
+# TRD Guida cliente
 
-Aggiornamento del 12 ottobre 2026 | Versione fase 5b | Simulazione e preparazione dell’accesso remoto
+Aggiornamento del 12 ottobre 2026 | Fase 6 | Analisi consultiva e rischio locale
 
-TRD mette a disposizione un centro di controllo per consultare lo stato del sistema, preparare le configurazioni e scegliere le fonti Telegram. L’analisi consultiva riconosce un formato preciso, registra gli esiti e spiega perché una proposta si ferma. Sono predisposti l’accesso remoto tramite Vercel e l’uso di OpenRouter, con controlli verificati su dati di prova. Il team deve ancora configurare e collaudare gli account reali. L’installazione attuale resta locale, con simulatore gratuito; la raccolta Telegram reale e l’invio di ordini restano disattivati.
+TRD raccoglie messaggi da fonti Telegram autorizzate, riconosce segnali strutturati e mostra analisi e motivi di arresto nella dashboard. **Oggi non invia ordini al broker.** L’installazione resta locale, con simulatore gratuito, raccolta Telegram e agenti disattivati finché non vengono configurati.
 
-Questa guida descrive l’utilizzo disponibile oggi, i controlli da verificare e le azioni da richiedere al team in caso di problemi. Viene aggiornata insieme alle funzionalità del prodotto.
+## Il percorso di un segnale
 
-## Funzionalità disponibili
+![Flusso da Telegram alla dashboard con controlli e arresto prima degli ordini](../illustrazioni/flusso-segnale.png)
 
-| Funzione | Disponibilità attuale |
+Apri il [diagramma interattivo](FLUSSO_SISTEMA.html) nel browser per esplorare ogni passaggio. Funziona anche senza connessione.
+
+## Cosa è disponibile oggi
+
+| Funzione | Stato e limite |
 | --- | --- |
-| Accesso e uscita | Disponibili con utenti autorizzati e ruoli distinti |
-| Consultazione delle pagine | Disponibile per amministratori e lettori |
-| Tema chiaro e scuro | Selezionabile anche nella pagina di accesso; preferenza conservata nel browser |
-| Fonti Telegram | Inserimento, rinomina, autorizzazione e disattivazione dalla dashboard |
-| Lettura dei messaggi | Implementata e collaudata con dati di prova; richiede credenziali e account Telegram collegato |
-| Messaggi Telegram | Consultazione di un’anteprima del testo e dell’evento più recente, con numero di versione |
-| Configurazioni e registro attività | Modifiche confermate e registrate; limiti di rischio modificabili soltanto in senso più restrittivo |
-| Analisi messaggi | Classificazione locale, motivi di arresto e collegamento alle proposte; collaudata con dati di prova |
-| Agenti IA | Simulatore locale o modelli OpenRouter collaudati dal team; attivazione e costo massimo richiedono conferma |
-| Accesso remoto | Predisposto con verifica dell’identità e MFA; il dominio cliente richiede ancora configurazione e collaudo |
-| OpenRouter | Integrato e verificato con dati di prova; disattivato finché mancano account e collaudo reale |
-| Broker | Disabilitato; motore di rischio ed esecuzione appartengono alle fasi successive |
+| Dashboard e utenti | Implementati e verificati in locale; amministratore modifica, lettore consulta |
+| Fonti e messaggi Telegram | Implementati e verificati con dati di prova; account reale da collegare e collaudare |
+| Classificazione e interpretazione | Locali, con formato rigoroso; attivazione esplicita degli agenti |
+| Analisi e decisione IA | Consultive; simulatore disponibile, senza dati di mercato verificati |
+| OpenRouter e accesso remoto | Implementati e verificati con dati di prova; account, dominio, MFA e collaudo reale ancora richiesti |
+| Motore del rischio | Implementato e verificato con dati di prova; non ancora collegato ai segnali e al conto |
+| Esecuzione, MT5 e ordini | Da implementare e collaudare; trading disabilitato |
 
-## Accesso e ruoli
+## Accedere e scegliere le fonti
 
-Apri la dashboard all’indirizzo comunicato dal team. Nell’installazione locale è http://localhost:3000. Inserisci l’email e la password del tuo utente. Il team deve predisporre un’utenza nominativa; le credenziali iniziali del server non devono essere condivise fra clienti.
+1. Apri l’indirizzo comunicato dal team; in locale è `http://localhost:3000`. Usa email e password personali. Il lettore consulta; l’amministratore salva modifiche confermate.
+2. In **Fonti Telegram**, scegli **Aggiungi fonte**. Inserisci nome e riferimento: `@nomecanale`, link pubblico o identificativo del gruppo fornito dal team.
+3. Imposta la lettura su **Autorizzata**, poi **Rivedi modifica** e **Conferma e salva**. Per i gruppi privati l’account deve già avere accesso. TRD non si iscrive automaticamente.
+4. Controlla **Lettura verificata** e **Ultima verifica**. Una fonte salvata può essere ancora in attesa del collegamento. Usa **Aggiorna dati** per leggere lo stato recente.
 
-L’amministratore può consultare le pagine e proporre modifiche. Il lettore può consultare i dati e non dispone dei controlli per salvare configurazioni. Anche il servizio verifica il ruolo: un controllo nascosto nella pagina non costituisce l’unica protezione.
+Il team collega Telegram con una procedura locale: **telefono, codici e password Telegram non vanno nella dashboard**. Puoi rinominare o disattivare una fonte; per cambiare canale aggiungine una nuova. Massimo 32 fonti per ambiente.
 
-La sessione termina dopo trenta minuti di inattività oppure, comunque, dopo otto ore dall’accesso. In caso di scadenza accedi nuovamente. Usa Esci quando hai finito, soprattutto su un dispositivo condiviso. Il ripristino della password e la gestione degli utenti richiedono attualmente l’intervento del team.
+La sessione TRD scade dopo 30 minuti di inattività o 8 ore totali. Usa **Esci** sui dispositivi condivisi; utenti e recupero password richiedono il team. Il tema chiaro o scuro è selezionabile anche all’accesso e su mobile: la scelta resta nel browser per un anno. Le date sono mostrate nel fuso italiano.
 
-Quando il team consegnerà l’indirizzo remoto, apri esattamente il dominio protetto comunicato. Completa la verifica dell’identità e il secondo fattore, poi accedi a TRD con la stessa email autorizzata e la password personale. Un link di anteprima diverso dal dominio approvato non consente di leggere i dati. L’accesso remoto va consegnato soltanto dopo un collaudo reale della protezione.
+Per l’accesso remoto usa il dominio protetto consegnato dal team, completa MFA e accedi a TRD con la stessa email autorizzata. Staging e produzione hanno dati e account separati; produzione non significa trading reale.
 
-Staging è l’ambiente di prova; produzione è quello destinato al cliente. I due ambienti hanno dati e account separati. La parola produzione indica l’ambiente di distribuzione e non significa trading reale: gli ordini restano disabilitati anche lì.
+## Capire messaggi e analisi
 
-## Scegliere il tema della dashboard
+In **Messaggi Telegram** trovi anteprima, fonte, evento e versione. TRD conserva revisioni e cancellazioni osservate, evita duplicati e non apre link né scarica allegati. La lettura iniziale è ogni 30 secondi; il recupero dopo una pausa copre fino a 24 ore. Eventi scomparsi prima dell’osservazione o fuori finestra possono mancare.
 
-La dashboard si apre inizialmente con il tema scuro. Usa Passa al tema chiaro nella parte superiore delle pagine; il pulsante diventa Passa al tema scuro per tornare alla modalità precedente. Il comando è disponibile anche sotto il modulo di accesso e sulle schermate mobili.
+Un segnale deve contenere direzione, strumento, ingresso, stop loss e take profit. Esempio inventato, solo per spiegare il formato:
 
-La scelta resta valida dopo un aggiornamento della pagina o un nuovo accesso dallo stesso browser, per un massimo di un anno. È una preferenza del browser, condivisa dagli utenti che lo utilizzano sullo stesso indirizzo; cancellare i cookie ripristina il tema scuro. Non occorrono configurazioni o account aggiuntivi.
+`BUY EURUSD ENTRY 1.10000 SL 1.09500 TP 1.11000`
 
-## Inserire una fonte Telegram
+Sono riconosciuti EURUSD, GBPUSD, USDJPY, USDCHF, AUDUSD, USDCAD e NZDUSD. Questo elenco riguarda il testo; non autorizza operazioni. Il segnale iniziale deve essere completo, non una risposta e pubblicato da non più di 15 minuti. Intervalli, suffissi, più obiettivi o istruzioni extra richiedono revisione. Modifiche e cancellazioni fermano la proposta precedente; le risposte non aprono una seconda proposta.
 
-1. Apri Fonti Telegram e seleziona Aggiungi fonte.
-2. Inserisci un nome riconoscibile, ad esempio Segnali del gruppo principale.
-3. Inserisci @nomecanale, un link pubblico come https://t.me/nomecanale oppure l’identificativo negativo del gruppo fornito dal team.
-4. Imposta Lettura dei messaggi su Autorizzata per consentire la raccolta, oppure su Disattivata per preparare una fonte senza leggerla.
-5. Seleziona Rivedi modifica, controlla il riepilogo e scegli Conferma e salva.
-
-Il salvataggio autorizza la fonte, ma non dimostra ancora che il collegamento sia riuscito. La verifica avviene attraverso l’account Telegram collegato dal team. Per i gruppi privati l’account deve avere già accesso: il sistema non utilizza link di invito e non si iscrive automaticamente. Se serve l’identificativo di un gruppo, chiedilo al team.
-
-Una fonte già registrata può essere rinominata o disattivata con Apri fonte. Il riferimento al canale resta fisso per mantenere la provenienza dei messaggi: per cambiare canale, disattiva la fonte precedente e aggiungine una nuova. Sono previste al massimo trentadue fonti per ambiente.
-
-I numeri di telefono, i codici di accesso e la password Telegram non vanno inseriti nella dashboard. Il collegamento dell’account viene eseguito dal team attraverso una procedura locale protetta.
-
-## Verificare lo stato della lettura
-
-| Stato della fonte | Significato e azione |
+| Esito o stato | Significato e azione |
 | --- | --- |
-| In attesa del collegamento | La fonte è salvata; l’account o la verifica non sono ancora disponibili |
-| Lettura verificata | Una lettura recente è riuscita; controlla anche Ultima verifica |
-| Recupero in corso | Il servizio sta recuperando una parte della cronologia |
-| Interruzione da verificare | La pausa supera la finestra di recupero; il team deve valutare il periodo non coperto |
-| Fonte non accessibile | Il canale non è disponibile o l’account non dispone dell’accesso necessario |
-| Attesa richiesta da Telegram | Telegram richiede una pausa; non occorre reinserire la fonte |
-| Da verificare | L’osservazione è troppo vecchia o manca una conferma recente |
-| Disattivata | Il servizio non raccoglie nuovi messaggi da questa fonte |
+| Ignorato | Non è stato riconosciuto un segnale |
+| Richiede revisione | Testo ambiguo, risposta, modifica o configurazione incompleta; verifica con il team |
+| Scaduto | Superata la finestra per l’analisi del segnale |
+| In attesa | Proposta consultiva; mancano conto e mercato verificati e collegamento all’esecuzione |
+| Fonte non accessibile o interruzione da verificare | Comunica al team fonte, stato e ora |
+| Attesa richiesta da Telegram | Il servizio rispetta la pausa; non reinserire la fonte |
 
-Se lo stato resta inatteso, aggiorna i dati e segnala al team il nome della fonte, lo stato e l’ora dell’ultima verifica. Un dato già caricato non cambia necessariamente da solo: usa Aggiorna dati per consultare una nuova osservazione. Le date della dashboard sono mostrate nel fuso orario italiano.
+## Agenti IA e costi
 
-## Consultare i messaggi e le revisioni
+Il percorso usa **classificazione → interpretazione → analisi di mercato → valutazione della decisione**. La **verifica critica** si aggiunge se attivata; se il server la rende obbligatoria, la sua assenza ferma l’analisi. La revisione delle posizioni resta futura.
 
-Apri Messaggi Telegram per consultare la fonte, l’identificativo del messaggio, il tipo di evento e la versione più recente. La pagina mostra un’anteprima di testo fino a 240 caratteri. Non scarica allegati e non apre automaticamente i link contenuti nei messaggi.
+L’amministratore configura gli agenti in **Agenti IA** con riepilogo e conferma. Non si attivano da soli. Il simulatore costa zero e restituisce attesa perché non osserva mercato o conto. In **Segnali**, apri il dettaglio per vedere prezzi, motivi e tentativi.
 
-La ricezione ripetuta dello stesso evento non aggiunge una nuova versione. Una modifica effettiva conserva una nuova revisione. Una cancellazione viene indicata come tale, mantenendo gli identificativi e lo storico necessari alla ricostruzione. Il numero di messaggi della fonte conta i messaggi distinti, anche quando esistono più revisioni.
+OpenRouter richiede collaudo del team, modello approvato non scaduto e costo massimo positivo entro i budget server. Può servire analisi, decisione e critica; classificazione e interpretazione restano locali. Al fornitore va la proposta normalizzata, non il testo Telegram completo. Le chiavi API restano sul server.
 
-La raccolta viene verificata periodicamente; l’impostazione iniziale è ogni trenta secondi, ma la durata dipende dalle fonti e dalle risposte di Telegram. Dopo una pausa il recupero copre inizialmente una finestra massima di ventiquattro ore. Le revisioni o cancellazioni molto vecchie e gli eventi avvenuti e scomparsi durante un’interruzione possono non essere recuperabili. Un’interruzione oltre questa finestra viene resa visibile.
+**Costi IA** distingue costo contabilizzato, costo del fornitore e importi prenotati. Un consumo sconosciuto conserva la prenotazione e ferma altri tentativi; chiedi al team la riconciliazione. Un riavvio non libera l’importo né reinvia automaticamente quella richiesta. Anche un esito positivo dell’IA non autorizza un ordine.
 
-I messaggi sono dati da valutare. La pagina Analisi messaggi mostra l’esito della classificazione e i motivi di arresto. Le proposte riconosciute compaiono anche in Segnali, con le versioni e le valutazioni consultive. Nessun messaggio o risultato del simulatore autorizza un ordine.
+## Regole e protezioni
 
-## Consultare e configurare l’analisi
+Ogni modifica amministrativa richiede conferma, valida per 2 minuti e legata alla versione corrente. Se un altro amministratore ha modificato i dati, aggiorna e rivedi. Il **Registro attività** conserva accessi e cambiamenti.
 
-In Analisi messaggi seleziona Aggiorna dati per leggere gli ultimi esiti. Ignorato indica che non è stato riconosciuto un segnale; Richiede revisione indica un formato ambiguo, una modifica, una risposta o una configurazione incompleta; Scaduto indica un messaggio troppo vecchio. In attesa indica una proposta consultiva che non dispone ancora di una verifica del rischio e di dati di mercato verificati.
+Nei **Controlli del rischio** puoi preparare limiti più restrittivi: non puoi aumentare l’autorità del server, eliminare gli stop obbligatori o abilitare il trading reale. Il motore è implementato e verificato con dati di prova: controlla stop, rischio, perdita giornaliera, esposizione, lotti, leva, spread e orari. **I limiti restano preparatori:** mancano dati autenticati di conto e mercato e collegamento all’esecuzione. Con esposizioni presenti, le modifiche del rischio richiedono il futuro servizio di esecuzione e vengono rifiutate.
 
-Il riconoscimento iniziale richiede un solo strumento Forex supportato, direzione, prezzo di ingresso, stop loss e take profit. Il formato deve essere completo e preciso: intervalli di prezzo, più obiettivi, suffissi dello strumento o istruzioni aggiunte richiedono revisione. Il sistema non indovina prezzi o strumenti. La finestra iniziale dell’analisi è di quindici minuti dalla pubblicazione, distinta dal recupero della cronologia Telegram.
+In **Impostazioni** scegli la conservazione. Il team avvia la pulizia dei contenuti Telegram e IA a piccoli lotti; la pulizia automatica periodica e quella dei log per età non sono disponibili. La rotazione dei log per dimensione è attiva.
 
-L’amministratore può aprire Agenti IA e attivare Agente attivo per Classificazione dei segnali, Interpretazione dei segnali, Analisi di mercato e Valutazione delle decisioni. Ogni attivazione passa da Rivedi modifica e Conferma e salva; il riepilogo mostra anche la nuova versione delle istruzioni. Gli agenti necessari devono essere tutti configurati. La Verifica critica può essere aggiunta, mentre la Revisione delle posizioni resta indisponibile. Il lettore può consultare le configurazioni senza modificarle.
+Prima della raccolta reale servono collegamento Telegram e prove di lettura, revisioni e recupero. Prima di IA a pagamento e accesso remoto servono account, budget, privacy, dominio e MFA collaudati. Prima di qualsiasi ordine serviranno collegamento del rischio, riconciliazione, MT5 e conto demo verificati; il trading reale richiede ulteriori autorizzazioni indipendenti.
 
-Il simulatore restituisce attesa perché non osserva quotazioni o conti reali. Apri dettaglio permette di consultare prezzi della proposta, stato e tentativi degli agenti, con modello e versione. I costi del simulatore sono zero; la pagina Costi IA distingue consumi registrati e prenotazioni conservate quando un tentativo è rimasto senza esito confermato. Un riavvio non reinvia automaticamente una richiesta dall’esito sconosciuto.
+## Cronologia delle revisioni
 
-Dopo il collaudo del team, i modelli OpenRouter approvati compaiono per Analisi di mercato, Valutazione delle decisioni e Verifica critica, insieme al fornitore e alla scadenza dell’approvazione. Per usarli occorre un costo massimo positivo per richiesta, entro i budget autorizzati dal team. Il simulatore richiede invece costo massimo zero. Classificazione e interpretazione restano locali. La dashboard non richiede chiavi API, credenziali del server o del broker.
+9 ottobre 2026 — Prima guida con accesso, fonti e raccolta Telegram; account reale da predisporre.
 
-I modelli esterni possono generare addebiti. Costi IA mostra separatamente l’importo contabilizzato e il costo confermato dal fornitore. La prenotazione iniziale è prudente e può essere superiore al consumo finale. Se il costo non è confermato, il sistema conserva la prenotazione e ferma ulteriori tentativi; chiedi al team la riconciliazione. Se scade l’approvazione del modello, è necessaria una nuova verifica del team.
+11 ottobre 2026 — Analisi consultiva, agenti locali, tentativi e prenotazioni dei costi; trading disabilitato.
 
-La proposta normalizzata può essere inviata al fornitore approvato; il testo Telegram completo non viene inviato. Il team deve verificare anche le condizioni di trattamento dei dati dell’account. L’analisi non dispone ancora di dati di mercato verificati e non autorizza ordini, anche quando un modello restituisce una proposta positiva.
+12 ottobre 2026 — Preparazione Vercel, MFA e OpenRouter; account reali da collaudare, rischio e ordini futuri.
 
-Modifiche e cancellazioni conservano lo storico e fermano le proposte non inviate. Le risposte a un messaggio richiedono revisione: non producono una seconda proposta di apertura. Disattivare una fonte impedisce nuove elaborazioni autorizzate da quella fonte. Una configurazione modificata durante l’analisi richiede una nuova verifica.
+12 ottobre 2026 — Tema chiaro e scuro verificato anche all’accesso e su mobile.
 
-## Modificare le configurazioni
+12 ottobre 2026 — Guide snellite, diagrammi e rinvii operativi; distinti limiti attuali e funzioni future. Aggiornamenti documentali solo quando necessari.
 
-Ogni salvataggio amministrativo richiede un riepilogo e una conferma. La conferma vale per due minuti ed è legata all’utente, all’ambiente, ai valori proposti e alla versione corrente. Se un altro amministratore ha modificato gli stessi dati, aggiorna la pagina e rivedi la proposta.
-
-Nei Controlli del rischio puoi preparare limiti più restrittivi di quelli correnti. Non puoi aumentare la capacità autorizzata dal server, eliminare gli stop obbligatori o attivare il trading reale. Con esposizioni già presenti, le modifiche del rischio richiedono il futuro servizio di esecuzione e vengono rifiutate.
-
-In Impostazioni puoi preparare i periodi di conservazione. La pulizia dei contenuti Telegram e IA viene avviata dal team ed è limitata a piccoli lotti; gli identificativi e le evidenze necessarie alle operazioni restano protetti. Il periodo dei log grezzi è già configurabile, ma la cancellazione dei log per età non è ancora implementata. La rotazione per dimensione e numero di file è attiva.
-
-Il Registro attività permette di ricostruire gli accessi e le modifiche. Le versioni precedenti sono conservate: per correggere un valore effettua una nuova modifica confermata. Le conferme impediscono salvataggi involontari, ma non sostituiscono la verifica del contenuto proposto.
-
-## Controlli prima di un utilizzo operativo
-
-Oggi l’installazione resta in simulazione, con automazione e trading reale disattivati. Uno stato positivo nella panoramica conferma la disponibilità dell’infrastruttura; non conferma la salute di un broker o la validità finanziaria di un messaggio.
-
-Prima di utilizzare la raccolta reale, il team deve collegare l’account Telegram, verificare l’accesso alle fonti e controllare ricezione, modifiche, cancellazioni e recupero dopo un’interruzione. Per l’utilizzo con un broker serviranno inoltre il motore di rischio, la riconciliazione, i test sul conto demo e le verifiche del server di destinazione. L’abilitazione del trading reale non è disponibile come semplice interruttore della dashboard.
-
-Prima dell’accesso remoto servono dominio, verifica MFA e prove dei ruoli; prima di OpenRouter servono credito, modello approvato, limiti di spesa e collaudo reale della fatturazione. Il superamento dei test locali non sostituisce queste configurazioni.
-
-## Cronologia degli aggiornamenti
-
-9 ottobre 2026 — Prima guida cliente mantenuta nel progetto. Descrive accesso, configurazioni confermate, gestione delle fonti dalla dashboard e raccolta Telegram della fase 4. Il collegamento a un account reale è ancora da predisporre.
-
-11 ottobre 2026 — Aggiunta l’analisi consultiva della fase 5: esiti dei messaggi, proposte, attivazione confermata del simulatore, revisione delle modifiche e visibilità dei tentativi e delle prenotazioni. IA esterna e trading restano disabilitati.
-
-12 ottobre 2026 — Predisposti Vercel, accesso remoto con MFA e ambienti separati; integrato OpenRouter con modelli collaudati, scadenza e costo massimo confermato. Distinti i test con dati di prova dal collaudo degli account reali ancora richiesto. La fase 6 e gli ordini restano da implementare.
-
-12 ottobre 2026 — Aggiunto e verificato il cambio fra tema chiaro e scuro, disponibile anche all’accesso e su mobile, con preferenza conservata nel browser.
+12 ottobre 2026 — Motore di rischio locale della fase 6 implementato e verificato. Chiariti i controlli e i lotti conservativi; conto, mercato autenticato, esecuzione e MT5 restano futuri. Aggiornati diagrammi e Word.

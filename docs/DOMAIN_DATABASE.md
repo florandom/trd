@@ -2,8 +2,9 @@
 
 The foundation below was implemented in Phase 2 on 8 October 2026. Phase 4 adds the
 read-only Telegram collector and its fenced storage contract. Phase 5 adds offline
-advisory analysis and spend accounting; risk evaluation,
-external providers and trade execution remain unavailable. Historical foundation
+advisory analysis and spend accounting. Phase 6 implements pure paper risk evaluation;
+authenticated account observations, atomic exposure reservations and trade execution
+remain future gateway work. OpenRouter has its own acceptance gate. Historical foundation
 [validation](PHASE_2_VALIDATION.md) and [current Telegram evidence](PHASE_4_VALIDATION.md)
 record their separate acceptance scopes.
 
@@ -37,7 +38,12 @@ Environment-scoped records use composite keys and references; financial chains a
 
 Money, prices, volume and estimated costs use `NUMERIC(28,10)` with nonnegative/positive bounds and NaN rejection. Python contracts reject floating-point values, booleans and nonfinite decimal inputs. JSON financial values are decimal strings. Broker logins/tickets remain text, including values larger than JavaScript's safe integer range. UTC-aware timestamps are mandatory at domain boundaries; observation time and database creation time are distinct.
 
-Financial accounting bounds do not implement the Phase 6 risk engine. Account enrollment, fresh market/account snapshots, valuation, budget reservations, replay journals, broker-event authentication and reconciliation adapters arrive in their respective later phases.
+The Phase 6 [risk engine](RISK.md) evaluates explicitly supplied synthetic account,
+market and portfolio observations with exact Decimal arithmetic. It writes no database
+records and creates no approvals or commands; the migration remains
+`0005b_remote_openrouter` with 41 tables. Account enrollment, authenticated snapshots,
+atomic exposure reservations, replay journals and reconciliation adapters arrive in
+the gateway/bridge phases. Existing role permissions remain authoritative.
 
 ## Lifecycles and transactions
 

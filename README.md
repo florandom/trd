@@ -1,5 +1,11 @@
 # Autonomous trading orchestration platform
 
+Phase 6 adds the pure paper risk engine: exact Decimal sizing, protective stops,
+all-account exposure/reservations, daily loss and timezone-aware sessions.
+The [risk contract](docs/RISK.md) and [validation](docs/PHASE_6_VALIDATION.md) distinguish
+synthetic local acceptance from future authenticated gateway/MT5 execution.
+Analysis still waits for that gateway; paper and disabled trading remain defaults.
+
 Preparation before phase 6 adds Vercel packaging, independent environments,
 Cloudflare Access/MFA identity checks and gated OpenRouter integration. The persistent
 Python backend stays on Windows and can also deploy on Linux. See

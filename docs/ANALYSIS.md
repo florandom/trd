@@ -29,7 +29,10 @@ critic stops the route. Required stages never become optional for cost/availabil
 POSITION_REVIEW_AGENT and adaptive memory remain unavailable.
 
 The mock reports WAIT, MOCK_ONLY and NO_MARKET_CONTEXT, with zero consumption. Even
-a schema-valid PROPOSE stays WAITING with RISK_NOT_IMPLEMENTED. Rejection/escalation
+a schema-valid PROPOSE stays WAITING with RISK_GATEWAY_UNAVAILABLE. Phase 6 provides
+a pure [paper risk engine](RISK.md), but no authenticated observations or execution
+gateway connect it to these receipts. Historical RISK_NOT_IMPLEMENTED receipts remain
+readable and are not rewritten. Rejection/escalation
 stop the route. Analysis creates no risk approval, exposure reservation, execution
 command or broker action. The future gateway must check source/instrument permissions,
 market/account freshness and every financial gate; parsing satisfies none of those

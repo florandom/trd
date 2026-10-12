@@ -1,7 +1,10 @@
 # Autonomous trading orchestration architecture
 
-Status: approved direction, phases 1–5 implemented; Vercel/OpenRouter preparation
-before phase 6 authorized on 12 October 2026. Research baseline: 2 October 2026.
+Status: approved direction, phases 1–6 implemented; phase 6 is a pure paper risk
+engine verified with synthetic observations, without an execution gateway.
+Vercel/OpenRouter preparation remains subject to real-host acceptance.
+Research baseline: 2 October 2026. See [risk contract](RISK.md) and
+[phase 6 evidence](PHASE_6_VALIDATION.md).
 Later sections describe future risk/execution capabilities, not completed features
 or production certification. See [deployment](DEPLOYMENT_VERCEL.md),
 [OpenRouter acceptance](OPENROUTER.md), [approval](PHASE_0_APPROVAL.md),

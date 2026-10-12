@@ -4,11 +4,13 @@ Run with Python containing python-docx (the Codex document runtime supplies it).
 Document tooling is deliberately separate from application dependencies.
 """
 
+import argparse
 import re
 from pathlib import Path
 
 from docx import Document
-from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
@@ -21,8 +23,8 @@ GUIDES = (
 
 
 def inline(paragraph, value):
-    for part in re.split(r"(\[[^\]]+\]\(https?://[^)]+\)|`[^`]+`|\*\*[^*]+\*\*)", value):
-        link = re.fullmatch(r"\[([^\]]+)\]\((https?://[^)]+)\)", part)
+    for part in re.split(r"(\[[^\]]+\]\([^)]+\)|`[^`]+`|\*\*[^*]+\*\*)", value):
+        link = re.fullmatch(r"\[([^\]]+)\]\(([^)]+)\)", part)
         if link:
             target = paragraph.part.relate_to(
                 link[2],
@@ -46,7 +48,7 @@ def inline(paragraph, value):
             paragraph.add_run(part[2:-2]).bold = True
         elif part.startswith("`") and part.endswith("`"):
             run = paragraph.add_run(part[1:-1])
-            run.font.name = "Consolas"
+            run.font.name = "Liberation Mono"
             run.font.size = Pt(9)
         else:
             paragraph.add_run(part)
@@ -57,7 +59,7 @@ def table(document, rows):
     result = document.add_table(rows=0, cols=count)
     result.alignment = WD_TABLE_ALIGNMENT.CENTER
     result.autofit = False
-    widths = [Cm(8.4), Cm(8.4)] if count == 2 else [Cm(4.9), Cm(6.5), Cm(5.4)]
+    widths = [Cm(7.6), Cm(9.2)] if count == 2 else [Cm(4.9), Cm(6.5), Cm(5.4)]
     for column, width in zip(result.columns, widths, strict=True):
         column.width = width
     borders = OxmlElement("w:tblBorders")
@@ -75,6 +77,7 @@ def table(document, rows):
             properties.append(OxmlElement("w:tblHeader"))
         for cell, width, value in zip(row.cells, widths, values, strict=True):
             cell.width = width
+            cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
             margins = OxmlElement("w:tcMar")
             for edge in ("top", "left", "bottom", "right"):
                 margin = OxmlElement(f"w:{edge}")
@@ -87,9 +90,9 @@ def table(document, rows):
             inline(paragraph, value)
             for run in paragraph.runs:
                 run.bold = index == 0
-            if index == 0:
+            if index == 0 or index % 2 == 0:
                 shade = OxmlElement("w:shd")
-                shade.set(qn("w:fill"), "F2F2F2")
+                shade.set(qn("w:fill"), "DFEAF3" if index == 0 else "F5F8FA")
                 cell._tc.get_or_add_tcPr().append(shade)
     document.add_paragraph().paragraph_format.space_after = Pt(2)
 
@@ -134,7 +137,7 @@ def build(stem, label):
     table_style.paragraph_format.line_spacing = 1.04
     code_style = styles.add_style("Guide Code", 1)
     code_style.base_style = normal
-    code_style.font.name = "Consolas"
+    code_style.font.name = "Liberation Mono"
     code_style.font.size = Pt(8.5)
     code_style.paragraph_format.space_after = Pt(3)
     section.header.paragraphs[0].text = label
@@ -152,6 +155,7 @@ def build(stem, label):
     normal.element.get_or_add_rPr().append(language)
     index = 0
     first_paragraph = True
+    list_number_id = None
     while index < len(lines):
         line = lines[index].strip()
         index += 1
@@ -163,6 +167,13 @@ def build(stem, label):
             document.add_paragraph(line[3:], "Heading 1")
         elif line.startswith("### "):
             document.add_paragraph(line[4:], "Heading 2")
+        elif image := re.fullmatch(r"!\[([^\]]*)\]\(([^)]+)\)", line):
+            image_path = (source.parent / image[2]).resolve()
+            paragraph = document.add_paragraph()
+            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            paragraph.paragraph_format.space_after = Pt(8)
+            picture = paragraph.add_run().add_picture(str(image_path), width=Cm(16.8))
+            picture._inline.docPr.set("descr", image[1])
         elif line.startswith("```"):
             while index < len(lines) and not lines[index].startswith("```"):
                 document.add_paragraph(lines[index], "Guide Code")
@@ -178,16 +189,30 @@ def build(stem, label):
             table(document, rows)
         elif re.match(r"\d+\. ", line):
             paragraph = document.add_paragraph(style="List Number")
+            if line.startswith("1. ") or list_number_id is None:
+                numbering = document.part.numbering_part.element
+                base_id = styles["List Number"].element.pPr.numPr.numId.val
+                abstract_id = numbering.xpath(f'./w:num[@w:numId="{base_id}"]/w:abstractNumId')[
+                    0
+                ].get(qn("w:val"))
+                new_number = numbering.add_num(int(abstract_id))
+                new_number.add_lvlOverride(ilvl=0).add_startOverride(1)
+                list_number_id = new_number.numId
+            paragraph._p.get_or_add_pPr().get_or_add_numPr().get_or_add_numId().val = list_number_id
             paragraph.paragraph_format.keep_with_next = bool(
                 index < len(lines) and re.match(r"\d+\. ", lines[index])
             )
             inline(paragraph, re.sub(r"^\d+\. ", "", line))
+        elif line.startswith("- "):
+            paragraph = document.add_paragraph(style="List Bullet")
+            inline(paragraph, line[2:])
         else:
             text = line
             while (
                 index < len(lines)
                 and lines[index].strip()
-                and not lines[index].startswith(("#", "|", "```"))
+                and not lines[index].startswith(("#", "|", "```", "![", "- "))
+                and not re.match(r"\d+\. ", lines[index])
             ):
                 text += " " + lines[index].strip()
                 index += 1
@@ -198,5 +223,11 @@ def build(stem, label):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--guide", choices=("cliente", "team"), help="Build only the affected guide"
+    )
+    args = parser.parse_args()
     for guide in GUIDES:
-        build(*guide)
+        if args.guide is None or guide[0].startswith(args.guide + "/"):
+            build(*guide)
