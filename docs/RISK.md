@@ -2,8 +2,9 @@
 
 Implemented and verified on 12 October 2026, Europe/Rome. This is the pure domain
 calculation gate, with synthetic paper observations. It has no database, HTTP, clock,
-AI or broker side effects. The isolated execution gateway, authenticated observations,
-atomic exposure reservations, signing and reconciliation are subsequent work.
+AI or broker side effects. Phase 7 connects it to an isolated local paper gateway, authenticated synthetic
+observations, atomic reservations, signing and reconciliation. See [paper bridge](PAPER_BRIDGE.md).
+Native MT5 and real broker acceptance remain future work.
 
 ## Contract and authority
 
@@ -84,8 +85,8 @@ unrealized changes and costs reflected in equity. Persisted opening equity sets
 the original day's budget; deposits/withdrawals never reset it. Baseline account,
 currency, UTC day and cash-flow history must match. Loss at or above the threshold
 returns REJECT with `latch_daily_loss=true`; an existing latch survives recovery.
-Reset never replaces the baseline or bypasses reevaluation. Persisting/confirming
-this latch belongs to the future gateway.
+Reset never replaces the baseline or bypasses reevaluation. The phase 7 paper gateway persists this latch; its lab rejects unsupported cash flows.
+Real deposits/withdrawals require uniquely evidenced broker reconciliation.
 
 ## Sessions and future wiring
 
@@ -96,15 +97,11 @@ Broker market-open evidence remains independent. Windows timezone data is alread
 supplied by the locked psycopg dependency.
 [Python zoneinfo behavior](https://docs.python.org/3.13/library/zoneinfo.html)
 
-Analysis now waits with `RISK_GATEWAY_UNAVAILABLE`; historical `RISK_NOT_IMPLEMENTED`
-receipts stay unchanged. Dashboard copy distinguishes the local engine from the
-unavailable execution connection. It accepts no fabricated account/market inputs.
-Runtime restrictions and database roles are unchanged; no new environment variable,
-endpoint or migration is needed.
-
-The next gateway must assemble authenticated complete observations under an account
-transaction, bind current advisory/configuration versions, evaluate and persist
-latch/reservation/approval/immutable command/outbox atomically. Delivery must rerun
-every applicable gate on exact approved economics and count its own reservation
-once. No admission/dispatch revalidation, durable deduplication, new reservation or
-broker acceptance is claimed here. [Acceptance evidence](PHASE_6_VALIDATION.md)
+The ordinary mock still waits with `RISK_GATEWAY_UNAVAILABLE`; historical receipts
+are preserved. The isolated paper gateway assembles current evidence and authenticates
+synthetic observations, under the evidence fence and account lock. Its `revalidate`
+call requires the exact HELD reservation, signal/source/symbol and fixed volume.
+It counts that hold once, conservatively preserving admitted risk/notional/margin;
+any increased risk or failed current gate revokes an unsent command. This adds no
+broker side effect to the pure engine. [Phase 7 contract](PAPER_BRIDGE.md) and
+[acceptance](PHASE_7_VALIDATION.md); original [phase 6 evidence](PHASE_6_VALIDATION.md).

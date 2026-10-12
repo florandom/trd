@@ -1,10 +1,12 @@
 # Autonomous trading orchestration platform
 
-Phase 6 adds the pure paper risk engine: exact Decimal sizing, protective stops,
-all-account exposure/reservations, daily loss and timezone-aware sessions.
-The [risk contract](docs/RISK.md) and [validation](docs/PHASE_6_VALIDATION.md) distinguish
-synthetic local acceptance from future authenticated gateway/MT5 execution.
-Analysis still waits for that gateway; paper and disabled trading remain defaults.
+Phase 7 connects the phase 6 risk engine to a local-only authenticated paper bridge,
+atomic reservations, immutable commands and a durable simulator with recovery.
+Run `pnpm paper:accept` with Docker available: it uses disposable PostgreSQL, random
+local keys and synthetic data, then removes its resources. It never reads operator
+`.env` or contacts external APIs. See the [bridge contract](docs/PAPER_BRIDGE.md) and
+[phase 7 evidence](docs/PHASE_7_VALIDATION.md). Real trading and external integrations
+remain disabled; the normal mock still waits. MT5/demo acceptance is separate.
 
 Preparation before phase 6 adds Vercel packaging, independent environments,
 Cloudflare Access/MFA identity checks and gated OpenRouter integration. The persistent

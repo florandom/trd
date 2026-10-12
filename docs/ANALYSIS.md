@@ -30,11 +30,12 @@ POSITION_REVIEW_AGENT and adaptive memory remain unavailable.
 
 The mock reports WAIT, MOCK_ONLY and NO_MARKET_CONTEXT, with zero consumption. Even
 a schema-valid PROPOSE stays WAITING with RISK_GATEWAY_UNAVAILABLE. Phase 6 provides
-a pure [paper risk engine](RISK.md), but no authenticated observations or execution
-gateway connect it to these receipts. Historical RISK_NOT_IMPLEMENTED receipts remain
+a pure [paper risk engine](RISK.md). Phase 7 adds an opt-in [local paper gateway](PAPER_BRIDGE.md)
+that binds current persisted advisory evidence and authenticated synthetic observations.
+The normal installation still waits; only the disposable lab supplies synthetic PROPOSE. Historical RISK_NOT_IMPLEMENTED receipts remain
 readable and are not rewritten. Rejection/escalation
 stop the route. Analysis creates no risk approval, exposure reservation, execution
-command or broker action. The future gateway must check source/instrument permissions,
+command or broker action. The paper gateway independently checks source/instrument permissions,
 market/account freshness and every financial gate; parsing satisfies none of those
 execution acceptance requirements.
 

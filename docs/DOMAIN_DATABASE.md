@@ -3,10 +3,22 @@
 The foundation below was implemented in Phase 2 on 8 October 2026. Phase 4 adds the
 read-only Telegram collector and its fenced storage contract. Phase 5 adds offline
 advisory analysis and spend accounting. Phase 6 implements pure paper risk evaluation;
-authenticated account observations, atomic exposure reservations and trade execution
-remain future gateway work. OpenRouter has its own acceptance gate. Historical foundation
+Phase 7 adds authenticated synthetic observations, atomic exposure reservations
+and local paper execution. Real broker/MT5 acceptance remains future work. OpenRouter has its own acceptance gate. Historical foundation
 [validation](PHASE_2_VALIDATION.md) and [current Telegram evidence](PHASE_4_VALIDATION.md)
 record their separate acceptance scopes.
+
+## Phase 7 additions
+
+`0007_paper_bridge` adds six fenced tables, bringing ORM/schema parity to 47:
+immutable snapshots, replay responses and decision deduplication; protected
+operator enrollment, UTC baseline/latch and remaining-command exposure. Only
+trd_risk can mutate paper execution evidence. Runtime roles cannot enroll accounts.
+The evidence advisory fence precedes the account lock. Admission, lifecycle, audit
+and outbox commit atomically; failed transactions leave no partial approval.
+Dashboard changes can tighten enrolled paper policies and invalidate unsent
+commands, while retaining delivered/unknown exposure. Downgrade refuses evidence
+loss. [Paper bridge](PAPER_BRIDGE.md).
 
 ## Phase 5 additions
 

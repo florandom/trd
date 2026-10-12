@@ -1,6 +1,6 @@
 # TRD Guida cliente
 
-Aggiornamento del 12 ottobre 2026 | Fase 6 | Analisi consultiva e rischio locale
+Aggiornamento del 12 ottobre 2026 | Fase 7 | Analisi e ordini simulati in locale
 
 TRD raccoglie messaggi da fonti Telegram autorizzate, riconosce segnali strutturati e mostra analisi e motivi di arresto nella dashboard. **Oggi non invia ordini al broker.** L’installazione resta locale, con simulatore gratuito, raccolta Telegram e agenti disattivati finché non vengono configurati.
 
@@ -19,8 +19,8 @@ Apri il [diagramma interattivo](FLUSSO_SISTEMA.html) nel browser per esplorare o
 | Classificazione e interpretazione | Locali, con formato rigoroso; attivazione esplicita degli agenti |
 | Analisi e decisione IA | Consultive; simulatore disponibile, senza dati di mercato verificati |
 | OpenRouter e accesso remoto | Implementati e verificati con dati di prova; account, dominio, MFA e collaudo reale ancora richiesti |
-| Motore del rischio | Implementato e verificato con dati di prova; non ancora collegato ai segnali e al conto |
-| Esecuzione, MT5 e ordini | Da implementare e collaudare; trading disabilitato |
+| Rischio ed esecuzione simulata | Collegati e verificati nel laboratorio locale: dati firmati, prenotazioni, ordini simulati e recupero |
+| MT5 e ordini reali | Da implementare e collaudare; trading disabilitato |
 
 ## Accedere e scegliere le fonti
 
@@ -50,7 +50,7 @@ Sono riconosciuti EURUSD, GBPUSD, USDJPY, USDCHF, AUDUSD, USDCAD e NZDUSD. Quest
 | Ignorato | Non è stato riconosciuto un segnale |
 | Richiede revisione | Testo ambiguo, risposta, modifica o configurazione incompleta; verifica con il team |
 | Scaduto | Superata la finestra per l’analisi del segnale |
-| In attesa | Proposta consultiva; mancano conto e mercato verificati e collegamento all’esecuzione |
+| In attesa | Proposta consultiva; nell’avvio normale mancano conto e mercato verificati. Nessun ordine reale |
 | Fonte non accessibile o interruzione da verificare | Comunica al team fonte, stato e ora |
 | Attesa richiesta da Telegram | Il servizio rispetta la pausa; non reinserire la fonte |
 
@@ -68,11 +68,11 @@ OpenRouter richiede collaudo del team, modello approvato non scaduto e costo mas
 
 Ogni modifica amministrativa richiede conferma, valida per 2 minuti e legata alla versione corrente. Se un altro amministratore ha modificato i dati, aggiorna e rivedi. Il **Registro attività** conserva accessi e cambiamenti.
 
-Nei **Controlli del rischio** puoi preparare limiti più restrittivi: non puoi aumentare l’autorità del server, eliminare gli stop obbligatori o abilitare il trading reale. Il motore è implementato e verificato con dati di prova: controlla stop, rischio, perdita giornaliera, esposizione, lotti, leva, spread e orari. **I limiti restano preparatori:** mancano dati autenticati di conto e mercato e collegamento all’esecuzione. Con esposizioni presenti, le modifiche del rischio richiedono il futuro servizio di esecuzione e vengono rifiutate.
+Nei **Controlli del rischio** puoi preparare limiti più restrittivi: non puoi aumentare l’autorità del server, eliminare gli stop obbligatori o abilitare il trading reale. Il motore è implementato e verificato con dati di prova: controlla stop, rischio, perdita giornaliera, esposizione, lotti, leva, spread e orari. **Il laboratorio locale** collega rischio e ordini simulati, con dati e chiavi temporanei; il team può provarlo senza tuoi account. Un esito incerto conserva il rischio e ferma nuove operazioni fino alla riconciliazione. Nel laboratorio, limiti più restrittivi fermano i comandi non inviati; esposizioni esterne restano soggette a verifica futura.
 
 In **Impostazioni** scegli la conservazione. Il team avvia la pulizia dei contenuti Telegram e IA a piccoli lotti; la pulizia automatica periodica e quella dei log per età non sono disponibili. La rotazione dei log per dimensione è attiva.
 
-Prima della raccolta reale servono collegamento Telegram e prove di lettura, revisioni e recupero. Prima di IA a pagamento e accesso remoto servono account, budget, privacy, dominio e MFA collaudati. Prima di qualsiasi ordine serviranno collegamento del rischio, riconciliazione, MT5 e conto demo verificati; il trading reale richiede ulteriori autorizzazioni indipendenti.
+Prima della raccolta reale servono collegamento Telegram e prove di lettura, revisioni e recupero. Prima di IA a pagamento e accesso remoto servono account, budget, privacy, dominio e MFA collaudati. Prima di qualsiasi ordine reale serviranno MT5, riconciliazione broker e conto demo verificati; il trading reale richiede ulteriori autorizzazioni indipendenti.
 
 ## Cronologia delle revisioni
 
@@ -87,3 +87,5 @@ Prima della raccolta reale servono collegamento Telegram e prove di lettura, rev
 12 ottobre 2026 — Guide snellite, diagrammi e rinvii operativi; distinti limiti attuali e funzioni future. Aggiornamenti documentali solo quando necessari.
 
 12 ottobre 2026 — Motore di rischio locale della fase 6 implementato e verificato. Chiariti i controlli e i lotti conservativi; conto, mercato autenticato, esecuzione e MT5 restano futuri. Aggiornati diagrammi e Word.
+
+12 ottobre 2026 — Fase 7: rischio e ordini simulati collegati e verificati in laboratorio locale. API, credenziali esterne e test demo rinviati al collaudo finale; diagrammi e Word aggiornati.

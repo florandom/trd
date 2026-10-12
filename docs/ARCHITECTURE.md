@@ -1,7 +1,9 @@
 # Autonomous trading orchestration architecture
 
-Status: approved direction, phases 1–6 implemented; phase 6 is a pure paper risk
-engine verified with synthetic observations, without an execution gateway.
+Status: approved direction, phases 1–7 implemented within local paper acceptance.
+Phase 7 wires the pure risk engine to authenticated synthetic observations, atomic
+reservations, signed commands and a durable simulator. Native MT5 and real broker
+acceptance remain future gates. [Paper bridge](PAPER_BRIDGE.md), [phase 7 evidence](PHASE_7_VALIDATION.md).
 Vercel/OpenRouter preparation remains subject to real-host acceptance.
 Research baseline: 2 October 2026. See [risk contract](RISK.md) and
 [phase 6 evidence](PHASE_6_VALIDATION.md).

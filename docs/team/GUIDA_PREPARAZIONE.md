@@ -1,8 +1,8 @@
 # TRD Guida di preparazione
 
-Aggiornamento del 12 ottobre 2026 | Fase 6 | Checklist operativa del team
+Aggiornamento del 12 ottobre 2026 | Fase 7 | Checklist operativa del team
 
-Dashboard, raccolta Telegram, analisi consultiva e motore del rischio sono implementati; il rischio, OpenRouter e accesso Vercel con Cloudflare MFA sono verificati con dati di prova. **L’installazione resta locale e in simulazione, con Telegram e agenti disattivati.** Account reali, dominio e VPS richiedono collaudo. Dati di conto e mercato autenticati, esecuzione, riconciliazione e MT5 sono futuri.
+Dashboard, raccolta Telegram, analisi consultiva e motore del rischio sono implementati; il rischio, OpenRouter e accesso Vercel con Cloudflare MFA sono verificati con dati di prova. **L’installazione resta locale e in simulazione, con Telegram e agenti disattivati.** Account reali, dominio e VPS richiedono collaudo. Dati firmati, prenotazioni, esecuzione e riconciliazione sono verificati nel laboratorio paper isolato. MT5 e riconciliazione con broker reale sono futuri; API e credenziali esterne saranno predisposte per i test finali.
 
 Questa guida raccoglie le azioni di preparazione; i contratti completi restano nei documenti tecnici collegati. Nessun esempio contiene credenziali o messaggi personali.
 
@@ -25,7 +25,7 @@ Staging e produzione usano **istanze PostgreSQL, porte, volumi, directory, chiav
 
 1. Usa i lockfile: Node 24.20.0, pnpm 11.25.0, Python 3.13.16, uv 0.12.22, PostgreSQL 17 e Docker Compose. Redis è facoltativo.
 2. Esegui `pnpm setup`, poi `docker compose up --build -d`. Il setup genera segreti distinti e conserva `.env` esistente; aggiungi manualmente nuovi campi se necessari. Non eliminare volumi per aggiornare.
-3. Verifica migrazione `0005b_remote_openrouter`, salute servizi e ruoli separati. Crea utenti nominativi con `pnpm user:create` da terminale interattivo.
+3. Verifica migrazione `0007_paper_bridge`, salute servizi e ruoli separati. Crea utenti nominativi con `pnpm user:create` da terminale interattivo.
 4. Apri `http://localhost:3000`; prova ADMIN, VIEWER, uscita e conferme. Agenti e raccolta non si attivano automaticamente.
 
 | Configurazione iniziale | Vincolo |
@@ -72,13 +72,13 @@ Collauda nuovo messaggio, duplicato, modifica, risposta, cancellazione, attesa T
 
 ## Preparare gli agenti e i costi
 
-![Percorso consultivo con rischio verificato in locale ed esecuzione futura](../illustrazioni/flusso-segnale.png)
+![Percorso consultivo e laboratorio con esecuzione simulata](../illustrazioni/flusso-segnale.png)
 
 In **Agenti IA**, l’ADMIN attiva e conferma classificazione, interpretazione, analisi e decisione con simulatore e istruzioni versione 2. Critica facoltativa salvo `ENABLE_CRITIC_AGENT=true`, che la rende obbligatoria. Revisione delle posizioni e memoria adattiva indisponibili.
 
 Il parser `structured-fx-v1` accetta un unico segnale ASCII completo, mai una risposta. Esempio sintetico: `BUY EURUSD ENTRY 1.10000 SL 1.09500 TP 1.11000`. Simboli: EURUSD, GBPUSD, USDJPY, USDCHF, AUDUSD, USDCAD, NZDUSD. Non deduce prezzi, suffissi o mapping broker; intervalli, più obiettivi e testo extra richiedono revisione. Stop e obiettivo devono essere coerenti con direzione e ingresso. Modifiche e cancellazioni invalidano la proposta non inviata.
 
-Finestra AI: 900 secondi dalla pubblicazione, ricontrollata alla conclusione; il recupero Telegram non la prolunga. Il simulatore restituisce WAIT senza contesto di mercato. Anche PROPOSE resta in attesa: il motore del rischio esiste, ma mancano dati autenticati e collegamento al gateway. Nessuna analisi crea autorizzazioni o comandi di esecuzione.
+Finestra AI: 900 secondi dalla pubblicazione, ricontrollata alla conclusione; il recupero Telegram non la prolunga. Il simulatore restituisce WAIT senza contesto di mercato. PROPOSE resta consultivo: solo il gateway paper può creare prenotazioni e comandi dopo tutti i controlli. Il laboratorio usa proposte sintetiche esplicite; il simulatore IA dell’installazione mantiene WAIT.
 
 | Limite AI | Default |
 | --- | --- |
@@ -89,20 +89,22 @@ Finestra AI: 900 secondi dalla pubblicazione, ricontrollata alla conclusione; il
 
 Simulatore con costo massimo agente zero. Budget come stringhe decimali finite; finestre contabili UTC, dashboard Europe/Rome. Prenotazioni preventive serializzate; massimo tre tentativi per agente/job, comprese alternative e riavvii. Consumo sconosciuto conserva l’importo e ferma altri tentativi anche dopo cambio periodo o riavvio. **Sblocco automatico non implementato:** serve riconciliazione prima dell’uso a pagamento. Contratto in [Analisi](../ANALYSIS.md).
 
-## Verificare il motore del rischio
+## Provare rischio ed esecuzione in locale
 
-La fase 6 è un motore puro di calcolo, verificato su dati sintetici con `pnpm test`. Non richiede nuovi account, chiavi o variabili ambiente; mantieni trading in paper e automazione disabilitata. I valori dei test non configurano l’installazione e non vanno riutilizzati come dati di un conto reale.
+Esegui `pnpm paper:accept` con Docker disponibile. Non servono account o credenziali esterne: crea PostgreSQL separato, chiavi casuali e dati sintetici, prova HTTP su loopback e rimuove le risorse temporanee. Non legge `.env` operatore. Verifica due ordini simulati, nessun duplicato e recupero dopo interruzione.
 
-Il motore restituisce PASS, REJECT o ERROR, con motivi, calcoli, versioni e riferimenti ai dati usati. PASS non crea autorizzazioni, prenotazioni o ordini. Lotti arrotondati verso il basso; rischio comprensivo di commissioni, slippage e conversione conservativa. Sono verificati i sette profili Forex del parser, con mapping broker esplicito; altri contratti e conversioni prive di un cambio diretto o inverso verificato vengono fermati.
+Il gateway blocca il conto in transazione, prenota il rischio e rivaluta prima dell’invio. Solo la conferma di esecuzione simulata completa il segnale; ricevuta e accettazione non bastano. Esiti incerti trattengono il rischio e fermano nuove aperture; un riavvio non reinvia l’ordine.
 
-| Controllo | Comportamento verificato in locale |
+| Controllo | Comportamento verificato nel laboratorio |
 | --- | --- |
-| Dati e autorizzazioni | Arresto su conto errato, dati scaduti, versioni cambiate, servizi non sani o analisi obbligatoria incompleta |
-| Protezioni ed esposizione | Stop obbligatori, passo dei lotti, rischio di tutto il conto e importi già prenotati; esiti sconosciuti conservano il rischio |
-| Perdita giornaliera | Base del giorno UTC con versamenti e prelievi; raggiungere il limite richiede blocco persistente, da registrare nel futuro gateway |
-| Orari | Calendario esplicito, festività e cambio d’ora; mercato broker aperto richiesto |
+| Dati e identità | Firma, scadenza, sequenza persistente e proprietario unico; versioni e dati scaduti fermano l’invio |
+| Protezioni ed esposizione | Stop obbligatori, rischio prenotato contato una volta, conferme parziali e duplicati gestiti |
+| Perdita giornaliera | Base UTC e blocco persistenti; recupero dell’equity non sblocca. Versamenti e prelievi non supportati |
+| Cambiamenti e guasti | Fonte, messaggio e limiti invalidano i comandi non inviati; esposizione già inviata conservata |
 
-La fase successiva deve autenticare e riconciliare i dati, bloccare il conto in transazione, prenotare il rischio e rivalutare ogni richiesta prima dell’invio. Non abilitare gli ordini per provare il motore. Contratto e limiti in [Rischio](../RISK.md) e [Verifiche della fase 6](../PHASE_6_VALIDATION.md).
+`PAPER_BRIDGE_ENABLED=false` resta il default. Si attiva solo in development/test con `PAPER_PROFILE_PATH`, `PAPER_REQUEST_KEY` e `PAPER_RESPONSE_KEY` distinte, ricevute solo dal processo rischio. Il comando genera tutto temporaneamente: non configurare l’installazione normale. Automazione e live restano false; staging, production, demo e live sono rifiutati.
+
+Il laboratorio apre EURUSD con conto USD sintetico e stop allegati. Chiusure, modifiche degli stop, MT5 e broker reali richiedono implementazione e collaudi separati. Contratti in [Bridge paper](../PAPER_BRIDGE.md), [Rischio](../RISK.md) e [Verifiche fase 7](../PHASE_7_VALIDATION.md).
 
 ## Abilitare OpenRouter dopo il collaudo
 
@@ -142,8 +144,6 @@ Windows: `New-NativeServiceTemplates.ps1 -BackendOnly` con prefissi, porte e dir
 
 ## Capacità ancora da implementare
 
-Il gateway dovrà collegare il motore di rischio verificato ai dati autenticati di conto e mercato e persistere blocchi, prenotazioni e comandi in transazione. I campi `HARD_*` restano limiti preparati per quel collegamento; non attivano ordini. Stop loss e take profit obbligatori restano attivi nella configurazione.
-
 MT5 richiederà conto demo, terminale Windows, bridge firmato, riconciliazione e collaudo broker. Credenziali broker solo nel terminale; chiavi bridge e firma distinte. Ordini pendenti e chiusura parziale disabilitati. Live richiederà autorizzazioni server e verifiche indipendenti. Il bot Telegram degli avvisi è separato dal collector e non invia oggi notifiche. Direzione approvata in [Architettura](../ARCHITECTURE.md).
 
 ## Aggiornare solo quando necessario
@@ -165,3 +165,5 @@ Data Europe/Rome, breve voce in cronologia e Word corrispondente per ogni guida 
 12 ottobre 2026 — Guide snellite, diagrammi e rinvii operativi; distinti limiti attuali e funzioni future. Aggiornamenti documentali solo quando necessari.
 
 12 ottobre 2026 — Fase 6: rischio locale verificato; esecuzione futura. Diagrammi e Word aggiornati.
+
+12 ottobre 2026 — Fase 7: ordini simulati, firma e recupero verificati. API e credenziali esterne ai test finali; migrazione, diagrammi e Word aggiornati.

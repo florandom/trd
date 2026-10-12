@@ -3,10 +3,30 @@
 Status: preparation before phase 6, 12 October 2026. Scoped configuration, Vercel
 preflight, remote Access/MFA verification and gated OpenRouter are implemented.
 Current installation remains local/mock/off. Real account/domain/Windows acceptance
-remains required; risk and broker execution are future work. See
+remains required. Risk/execution is implemented only for the isolated local paper
+laboratory; native MT5 and real broker execution remain future work. See
 [remote environment fields and export](DEPLOYMENT_VERCEL.md) and
 [OpenRouter fields and acceptance](OPENROUTER.md). Historical phase observations retain
 their original scope; the matrix includes reserved future fields.
+
+## Phase 7 local paper gate
+
+`pnpm paper:accept` generates an isolated database, profile and independent 256-bit
+purpose keys, exercises signed loopback HTTP and cleans up. Operator `.env` is not
+read; no external account/key is required. Real integration setup is deferred to
+final operator acceptance. Normal Compose/default services stay paper/off.
+
+| Risk-only field | Default and gate |
+| --- | --- |
+| PAPER_BRIDGE_ENABLED | `false`; true requires development/test and local profile/keys |
+| PAPER_PROFILE_PATH | Empty; private immutable synthetic enrollment profile |
+| PAPER_REQUEST_KEY | Empty; 64 lowercase hex characters, private request HMAC key |
+| PAPER_RESPONSE_KEY | Empty; independent response HMAC key of the same format |
+
+Only scoped risk export includes these fields. API, AI, collector, maintenance and
+dashboard receive none of them. No browser mutation enables this gate; no real MT5
+credential is used. Preserve ENABLE_AUTOMATION=false and ENABLE_LIVE_TRADING=false.
+[Full constraints and limitations](PAPER_BRIDGE.md).
 
 ## Current analysis additions
 
